@@ -98,13 +98,41 @@ export const DARK_THEME: ThemeTokens = {
 
 ---
 
-## 3. Mock Master Datasets & Calculation Logic (`data/masterData.ts`)
+## 3. Typographic App Logo Component (`components/AppLogo.tsx`)
+
+The CroFu logo is **pure typography** (`CroFu.`), rendered identically to the web app with a serif font and signature gold dot.
+
+```tsx
+import React from 'react';
+import { Text, StyleSheet } from 'react-native';
+import { ThemeTokens } from '../constants/theme';
+
+export default function AppLogo({ fontSize = 26, theme }: { fontSize?: number; theme: ThemeTokens }) {
+  return (
+    <Text style={[styles.logoText, { fontSize, color: theme.ink }]}>
+      CroFu<Text style={{ color: theme.gold }}>.</Text>
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  logoText: {
+    fontFamily: 'Fraunces-Bold',
+    fontWeight: 'bold',
+    letterSpacing: -0.5,
+  },
+});
+```
+
+---
+
+## 4. Mock Master Datasets & Calculation Logic (`data/masterData.ts`)
 
 ```typescript
 export interface CommodityMeta {
   key: string;
   label: string;
-  image: any; // local asset require or URI
+  image: any;
   unitQuintal: number;
   championModel: string;
   mape: number;
@@ -195,18 +223,10 @@ export const COMMODITIES: Record<string, CommodityMeta> = {
   },
 };
 
-export const ALL_MANDIS = [
-  { name: 'Koyambedu Wholesale', district: 'Chennai', modal: 2420, min: 2300, max: 2550, arrival: 1450, delta: 2.1, trend: 'Rising' },
-  { name: 'Madurai Central Mandi', district: 'Madurai', modal: 2280, min: 2150, max: 2400, arrival: 980, delta: -0.8, trend: 'Stable' },
-  { name: 'Azadpur Mandi', district: 'Delhi NCR', modal: 2350, min: 2200, max: 2500, arrival: 3200, delta: 1.5, trend: 'Rising' },
-  { name: 'Agra Vegetable Market', district: 'Agra', modal: 2210, min: 2100, max: 2320, arrival: 890, delta: -1.2, trend: 'Falling' },
-  { name: 'Salem Market Yard', district: 'Salem', modal: 2300, min: 2200, max: 2420, arrival: 650, delta: 0.4, trend: 'Stable' },
-];
-
 export function generateSeries(basePrice: number) {
   const history = [];
   const forecast = [];
-  const now = new Date(2026, 7, 4); // Aug 4, 2026
+  const now = new Date(2026, 7, 4);
 
   let p = basePrice - 300;
   for (let i = 30; i >= 1; i--) {
@@ -239,15 +259,17 @@ export function generateSeries(basePrice: number) {
 
 ---
 
-## 4. Mobile Component Specifications
+## 5. Mobile Component Specifications
 
-### 4.1 Serene Anthropic-Style Splash Screen (`components/SplashScreen.tsx`)
-Features a 2.5s unhurried splash screen with serene status text cross-fades and smooth `scale` zoom into the main dashboard.
+### 5.1 Serene Anthropic-Style Splash Screen (`components/SplashScreen.tsx`)
+Features a 2.5s unhurried splash screen displaying the raw text **`CroFu.`** logo with serene status text cross-fades and smooth `scale` zoom into the main dashboard.
 
 ```tsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import AppLogo from './AppLogo';
+import { DARK_THEME } from '../constants/theme';
 
 const PHRASES = [
   'Fetching market data...',
@@ -285,7 +307,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.logoContainer, logoStyle]}>
-        <Text style={styles.logoText}>CroFu<Text style={{ color: '#b8872e' }}>.</Text></Text>
+        <AppLogo fontSize={52} theme={DARK_THEME} />
       </Animated.View>
       <Text style={styles.phraseText}>{PHRASES[phraseIndex]}</Text>
     </View>
@@ -295,121 +317,13 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f1613', justifyContent: 'center', alignItems: 'center' },
   logoContainer: { alignItems: 'center' },
-  logoText: { fontFamily: 'Fraunces-Bold', fontSize: 48, color: '#ece7d9' },
   phraseText: { marginTop: 24, fontFamily: 'IBMPlexMono-Regular', fontSize: 12, color: '#93a090', letterSpacing: 1 },
 });
 ```
 
 ---
 
-### 4.2 Touch-Interactive Time-Series Chart (`components/InteractiveChart.tsx`)
-Constructed using `react-native-svg` and `PanGestureHandler`.
-
-- **Observed Line**: Solid Emerald Green (`#4c7a52` / `#5fa26a`).
-- **Forecast Line**: Dashed Amber Gold (`#b8872e` / `#e0ac4c`).
-- **Present Cutoff Line ($t=0$)**: Vertical dashed line at $x=50\%$ width.
-- **Drag Crosshair**: Pan gesture updates `hoveredPoint` and renders crosshair line + glowing active node circle + floating inspection tooltip card.
-
-```tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Line, Path, Polygon, Circle, Rect, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-
-export default function InteractiveChart({ chartMath, theme, unitLabel }: any) {
-  const [hoveredPoint, setHoveredPoint] = useState<any>(null);
-
-  const handleGesture = (evt: any) => {
-    const touchX = evt.nativeEvent.x;
-    const svgX = (touchX / 360) * 1000; // normalized 1000px viewBox
-    const allPts = [...chartMath.historyPoints, chartMath.t0Point, ...chartMath.forecastPoints];
-    let closest = allPts[0];
-    let minDist = Math.abs(svgX - closest.x);
-    for (let p of allPts) {
-      const dist = Math.abs(svgX - p.x);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = p;
-      }
-    }
-    setHoveredPoint(closest);
-  };
-
-  return (
-    <View style={styles.chartWrapper}>
-      <PanGestureHandler onGestureEvent={handleGesture}>
-        <View style={{ flex: 1 }}>
-          <Svg viewBox="0 0 1000 400" style={{ width: '100%', height: 320 }}>
-            <Defs>
-              <LinearGradient id="confidenceGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={theme.gold} stopOpacity="0.25" />
-                <Stop offset="1" stopColor={theme.gold} stopOpacity="0.05" />
-              </LinearGradient>
-            </Defs>
-
-            {/* Y-Grid Lines */}
-            {[0, 1, 2, 3, 4].map((step) => {
-              const yPos = 350 - step * (310 / 4);
-              return (
-                <Line key={step} x1="50" y1={yPos} x2="960" y2={yPos} stroke={theme.border} strokeWidth="0.75" strokeDasharray="3 3" />
-              );
-            })}
-
-            {/* Present t=0 Cutoff Line */}
-            <Line x1="500" y1="20" x2="500" y2="360" stroke={theme.gold} strokeWidth="2" strokeDasharray="4 4" />
-
-            {/* Observed Price Curve (Green) */}
-            <Path
-              d={chartMath.historyPoints.map((h: any, i: number) => `${i === 0 ? 'M' : 'L'} ${h.x} ${h.y}`).join(' ') + ` L 500 ${chartMath.t0Point.y}`}
-              fill="none"
-              stroke={theme.positive}
-              strokeWidth="2.5"
-            />
-
-            {/* Forecast Trajectory Curve (Gold Dashed) */}
-            <Path
-              d={`M 500 ${chartMath.t0Point.y} ` + chartMath.forecastPoints.map((f: any) => `L ${f.x} ${f.y}`).join(' ')}
-              fill="none"
-              stroke={theme.gold}
-              strokeWidth="2.5"
-              strokeDasharray="6 4"
-            />
-
-            {/* Touch Active Node Circle */}
-            {hoveredPoint && (
-              <>
-                <Line x1={hoveredPoint.x} y1="0" x2={hoveredPoint.x} y2="360" stroke={theme.gold} strokeWidth="1" strokeDasharray="2 2" />
-                <Circle cx={hoveredPoint.x} cy={hoveredPoint.y} r="7" fill={theme.gold} stroke={theme.bg} strokeWidth="2" />
-              </>
-            )}
-          </Svg>
-
-          {/* Inspection Card Tooltip */}
-          {hoveredPoint && (
-            <View style={[styles.tooltip, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Text style={{ color: theme.gold, fontWeight: 'bold', fontSize: 11 }}>
-                {hoveredPoint.date} ({hoveredPoint.isT0 ? 'PRESENT t=0' : hoveredPoint.type.toUpperCase()})
-              </Text>
-              <Text style={{ color: theme.ink, fontSize: 12, marginTop: 2 }}>
-                Price: ₹{hoveredPoint.actual || hoveredPoint.predicted} {unitLabel}
-              </Text>
-            </View>
-          )}
-        </View>
-      </PanGestureHandler>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  chartWrapper: { height: 340, width: '100%', marginVertical: 8 },
-  tooltip: { position: 'absolute', top: 10, right: 10, padding: 10, borderWidth: 1, borderRadius: 6, minWidth: 180 },
-});
-```
-
----
-
-## 5. APK Compilation Guide
+## 6. APK Compilation Guide
 
 To compile the application into a standalone `.apk` for distribution:
 
