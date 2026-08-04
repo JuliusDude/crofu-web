@@ -357,15 +357,15 @@ export default function Dashboard({ onNavigate }) {
                                                 backgroundClip: "text",
                                                 color: "transparent",
                                                 display: "inline-block",
-                                                WebkitTextStroke: active
-                                                    ? "0.8px rgba(225, 230, 240, 0.9)"
-                                                    : "0.5px rgba(200, 205, 215, 0.65)",
-                                                textShadow: active
-                                                    ? "0 1px 2px rgba(0,0,0,0.7), 0 0 2px rgba(255,255,255,0.7)"
-                                                    : "0 1px 1px rgba(0,0,0,0.4)",
+                                                WebkitTextStroke: isDark
+                                                    ? (active ? "0.6px rgba(255, 255, 255, 0.8)" : "0.4px rgba(255, 255, 255, 0.4)")
+                                                    : (active ? "0.6px rgba(0, 0, 0, 0.85)" : "0.4px rgba(0, 0, 0, 0.5)"),
+                                                textShadow: isDark
+                                                    ? "0 1px 3px rgba(0,0,0,0.9)"
+                                                    : "0 1px 2px rgba(255,255,255,0.8), 0 0 1px rgba(0,0,0,0.5)",
                                                 filter: isDark
-                                                    ? (active ? "brightness(1.4) contrast(1.5) saturate(1.2)" : "brightness(1.15) contrast(1.3)")
-                                                    : (active ? "brightness(1.1) contrast(1.4)" : "brightness(0.95) contrast(1.2)"),
+                                                    ? (active ? "brightness(1.45) contrast(1.5) saturate(1.2)" : "brightness(1.15) contrast(1.3)")
+                                                    : (active ? "brightness(0.9) contrast(1.45) saturate(1.2)" : "brightness(0.85) contrast(1.3)"),
                                             }}
                                         >
                                             {c.label}
