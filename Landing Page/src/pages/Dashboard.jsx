@@ -314,7 +314,7 @@ export default function Dashboard({ onNavigate }) {
                             style={{ borderColor: "var(--border)", color: "var(--ink)" }}
                             data-testid="dashboard-theme-toggle"
                         >
-                            {isDark ? "Light" : "Dark"}
+                            {isDark ? "◐ Light" : "◑ Dark"}
                         </button>
                     </div>
                 </div>
