@@ -269,6 +269,18 @@ export default function Dashboard({ onNavigate }) {
             return { ...h, x, y, yMa, type: "history" };
         });
 
+        // Exact t=0 Present Cutoff Point at x=500
+        const t0Point = {
+            date: "2026-08-04",
+            actual: seriesData.currentObserved,
+            predicted: seriesData.currentObserved,
+            arrival: 4850,
+            x: 500,
+            y: getY(seriesData.currentObserved),
+            type: "present",
+            isT0: true,
+        };
+
         const forecastPoints = activeForecast.map((f, i) => {
             const x = 510 + i * (440 / Math.max(1, activeForecast.length - 1));
             const y = getY(f.predicted);
@@ -277,7 +289,7 @@ export default function Dashboard({ onNavigate }) {
             return { ...f, x, y, yLower, yUpper, type: "forecast" };
         });
 
-        return { minVal, maxVal, getY, historyPoints, forecastPoints };
+        return { minVal, maxVal, getY, historyPoints, t0Point, forecastPoints };
     }, [seriesData, activeForecast, scaleType]);
 
     // Filter & Sort Mandis
@@ -694,7 +706,11 @@ export default function Dashboard({ onNavigate }) {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const clientX = e.clientX - rect.left;
                                 const svgX = (clientX / rect.width) * 1000;
-                                const allPts = [...chartMath.historyPoints, ...chartMath.forecastPoints];
+                                const allPts = [
+                                    ...chartMath.historyPoints,
+                                    chartMath.t0Point,
+                                    ...chartMath.forecastPoints,
+                                ];
                                 let closest = allPts[0];
                                 let minDist = Math.abs(svgX - closest.x);
                                 for (let p of allPts) {
@@ -715,8 +731,8 @@ export default function Dashboard({ onNavigate }) {
                                         <stop offset="100%" stopColor="var(--gold)" stopOpacity="0.05" />
                                     </linearGradient>
                                     <linearGradient id="historyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                        <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.2" />
-                                        <stop offset="100%" stopColor="var(--brand)" stopOpacity="0.0" />
+                                        <stop offset="0%" stopColor="var(--positive)" stopOpacity="0.2" />
+                                        <stop offset="100%" stopColor="var(--positive)" stopOpacity="0.0" />
                                     </linearGradient>
                                 </defs>
 
@@ -726,7 +742,7 @@ export default function Dashboard({ onNavigate }) {
                                     const priceStep = chartMath.minVal + step * ((chartMath.maxVal - chartMath.minVal) / 4);
                                     return (
                                         <g key={step}>
-                                            <line x1="40" y1={yPos} x2="960" y2={yPos} stroke="var(--border)" strokeWidth="0.75" strokeDasharray="3 3" />
+                                            <line x1="50" y1={yPos} x2="960" y2={yPos} stroke="var(--border)" strokeWidth="0.75" strokeDasharray="3 3" />
                                             <text x="5" y={yPos + 4} fill="var(--ink-2)" fontSize="10">
                                                 ₹{fmt(priceStep)}
                                             </text>
@@ -735,7 +751,7 @@ export default function Dashboard({ onNavigate }) {
                                 })}
 
                                 {/* Chronological Present Cutoff Line (t=0) */}
-                                <line x1="500" y1="20" x2="500" y2="360" stroke="var(--gold)" strokeWidth="1.5" strokeDasharray="4 4" />
+                                <line x1="500" y1="20" x2="500" y2="360" stroke="var(--gold)" strokeWidth="2" strokeDasharray="4 4" />
                                 <text x="506" y="32" fill="var(--gold)" fontWeight="bold" fontSize="10">
                                     PRESENT (t=0)
                                 </text>
@@ -781,16 +797,19 @@ export default function Dashboard({ onNavigate }) {
                                     points={
                                         `50,350 ` +
                                         chartMath.historyPoints.map((h) => `${h.x},${h.y}`).join(" ") +
-                                        ` 490,350`
+                                        ` 500,${chartMath.t0Point.y} 500,350`
                                     }
                                     fill="url(#historyGrad)"
                                 />
 
-                                {/* Historical Observed Price Line */}
+                                {/* Historical Observed Price Line (Green / Brand) */}
                                 <path
-                                    d={chartMath.historyPoints.map((h, i) => `${i === 0 ? "M" : "L"} ${h.x} ${h.y}`).join(" ")}
+                                    d={
+                                        chartMath.historyPoints.map((h, i) => `${i === 0 ? "M" : "L"} ${h.x} ${h.y}`).join(" ") +
+                                        ` L 500 ${chartMath.t0Point.y}`
+                                    }
                                     fill="none"
-                                    stroke="var(--ink)"
+                                    stroke="var(--positive)"
                                     strokeWidth="2.5"
                                     strokeLinecap="round"
                                 />
@@ -807,10 +826,10 @@ export default function Dashboard({ onNavigate }) {
                                     />
                                 )}
 
-                                {/* Forecast Trajectory Dashed Line */}
+                                {/* Forecast Trajectory Dashed Line (Gold) */}
                                 <path
                                     d={
-                                        `M 490 ${chartMath.historyPoints[chartMath.historyPoints.length - 1]?.y || 200} ` +
+                                        `M 500 ${chartMath.t0Point.y} ` +
                                         chartMath.forecastPoints.map((f) => `L ${f.x} ${f.y}`).join(" ")
                                     }
                                     fill="none"
@@ -842,9 +861,17 @@ export default function Dashboard({ onNavigate }) {
                                 {/* Interactive Hover Crosshair & Node Highlight */}
                                 {hoveredPoint && (
                                     <g>
-                                        <line x1={hoveredPoint.x} y1="0" x2={hoveredPoint.x} y2="360" stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="2 2" />
+                                        <line x1={hoveredPoint.x} y1="0" x2={hoveredPoint.x} y2="360" stroke={hoveredPoint.type === "forecast" ? "var(--gold)" : "var(--positive)"} strokeWidth="1" strokeDasharray="2 2" />
                                         <line x1="40" y1={hoveredPoint.y} x2="960" y2={hoveredPoint.y} stroke="var(--ink-2)" strokeWidth="0.5" strokeDasharray="2 2" />
-                                        <circle cx={hoveredPoint.x} cy={hoveredPoint.y} r="6" fill="var(--gold)" stroke="var(--bg)" strokeWidth="2" className="animate-pulse" />
+                                        <circle
+                                            cx={hoveredPoint.x}
+                                            cy={hoveredPoint.y}
+                                            r="6"
+                                            fill={hoveredPoint.type === "forecast" ? "var(--gold)" : "var(--positive)"}
+                                            stroke="var(--bg)"
+                                            strokeWidth="2"
+                                            className="animate-pulse"
+                                        />
                                     </g>
                                 )}
 
@@ -855,40 +882,58 @@ export default function Dashboard({ onNavigate }) {
                                 <text x="470" y="380" fill="var(--gold)" fontWeight="bold" fontSize="10">
                                     2026-08-04 (t=0)
                                 </text>
-                                <text x="910" y="380" fill="var(--ink-2)" fontSize="10">
+                                <text x="900" y="380" fill="var(--ink-2)" fontSize="10">
                                     {chartMath.forecastPoints[chartMath.forecastPoints.length - 1]?.date}
                                 </text>
                             </svg>
 
-                            {/* Section 3.3: Dynamic Interactive Inspection Card Tooltip */}
+                            {/* Section 3.3: Dynamic Interactive Inspection Card Tooltip (Positioned safely away from Y-axis) */}
                             <div
                                 className="absolute p-3 border font-mono text-xs space-y-1.5 shadow-xl transition-all pointer-events-none rounded"
                                 style={{
                                     top: "16px",
-                                    right: hoveredPoint && hoveredPoint.x > 500 ? "auto" : "16px",
-                                    left: hoveredPoint && hoveredPoint.x > 500 ? "16px" : "auto",
+                                    left: hoveredPoint && hoveredPoint.x > 500 ? "70px" : "auto",
+                                    right: hoveredPoint && hoveredPoint.x <= 500 ? "20px" : "auto",
                                     background: "var(--surface)",
                                     borderColor: "var(--border)",
                                     color: "var(--ink)",
-                                    minWidth: "240px",
+                                    minWidth: "250px",
+                                    zIndex: 30,
                                 }}
                             >
-                                <div className="flex items-center justify-between border-b pb-1 font-bold text-[var(--gold)]" style={{ borderColor: "var(--border)" }}>
-                                    <span>{hoveredPoint ? hoveredPoint.date : "Current Target Summary"}</span>
-                                    <span className="text-[10px] uppercase px-1.5 py-0.5 border" style={{ borderColor: "var(--border)" }}>
-                                        {hoveredPoint ? (hoveredPoint.type === "forecast" ? "AI FORECAST" : "OBSERVED") : "LIVE SUMMARY"}
+                                <div className="flex items-center justify-between border-b pb-1 font-bold" style={{ borderColor: "var(--border)" }}>
+                                    <span style={{ color: hoveredPoint?.type === "forecast" ? "var(--gold)" : "var(--positive)" }}>
+                                        {hoveredPoint ? hoveredPoint.date : "2026-08-04 (t=0)"}
+                                    </span>
+                                    <span
+                                        className="text-[10px] uppercase px-1.5 py-0.5 border font-bold"
+                                        style={{
+                                            borderColor: hoveredPoint?.type === "forecast" ? "var(--gold)" : "var(--positive)",
+                                            color: hoveredPoint?.type === "forecast" ? "var(--gold)" : "var(--positive)",
+                                        }}
+                                    >
+                                        {hoveredPoint?.isT0
+                                            ? "PRESENT (t=0)"
+                                            : hoveredPoint?.type === "forecast"
+                                            ? "AI FORECAST"
+                                            : "OBSERVED"}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-[var(--ink-2)]">{hoveredPoint?.type === "forecast" ? "Predicted Price:" : "Observed Price:"}</span>
-                                    <span className="font-bold text-[var(--gold)]">
+                                    <span className="text-[var(--ink-2)]">
+                                        {hoveredPoint?.type === "forecast" ? "Forecast Target Price:" : "Observed Market Price:"}
+                                    </span>
+                                    <span
+                                        className="font-bold"
+                                        style={{ color: hoveredPoint?.type === "forecast" ? "var(--gold)" : "var(--positive)" }}
+                                    >
                                         ₹{fmt(hoveredPoint ? (hoveredPoint.actual || hoveredPoint.predicted) : seriesData.currentObserved)} {unitLabel}
                                     </span>
                                 </div>
                                 {hoveredPoint?.type === "forecast" && (
                                     <div className="flex justify-between text-[11px]">
-                                        <span className="text-[var(--ink-2)]">Confidence Band:</span>
-                                        <span>₹{fmt(hoveredPoint.lower)} – ₹{fmt(hoveredPoint.upper)}</span>
+                                        <span className="text-[var(--ink-2)]">Confidence Range:</span>
+                                        <span className="text-[var(--gold)] font-semibold">₹{fmt(hoveredPoint.lower)} – ₹{fmt(hoveredPoint.upper)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-[11px]">
