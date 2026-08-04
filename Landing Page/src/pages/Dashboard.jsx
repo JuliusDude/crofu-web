@@ -337,11 +337,11 @@ export default function Dashboard({ onNavigate }) {
                                         key={key}
                                         onClick={() => setCommodity(key)}
                                         className={`px-3.5 py-1.5 border transition-all flex items-center justify-center ${
-                                            active ? "font-bold shadow-sm" : "opacity-85 hover:opacity-100"
+                                            active ? "shadow-md scale-105" : "opacity-85 hover:opacity-100"
                                         }`}
                                         style={{
                                             borderColor: active ? "var(--ink)" : "var(--border)",
-                                            background: active ? "var(--ink)" : "transparent",
+                                            background: active ? "var(--surface)" : "transparent",
                                         }}
                                     >
                                         <span
@@ -355,7 +355,7 @@ export default function Dashboard({ onNavigate }) {
                                                 backgroundClip: "text",
                                                 color: "transparent",
                                                 display: "inline-block",
-                                                filter: active ? "contrast(1.5) brightness(1.2) saturate(1.2)" : "contrast(1.1) opacity(0.85)",
+                                                filter: active ? "contrast(1.4) brightness(1.15)" : "contrast(1.1) opacity(0.85)",
                                             }}
                                         >
                                             {c.label}
