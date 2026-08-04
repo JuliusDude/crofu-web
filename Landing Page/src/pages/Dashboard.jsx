@@ -364,15 +364,6 @@ export default function Dashboard({ onNavigate }) {
                             <ArrowLeft size={14} />
                             <span>Landing Page</span>
                         </button>
-                        <button
-                            onClick={() => onNavigate && onNavigate("dashboard")}
-                            className="flex items-center gap-1.5 px-3 py-1.5 border text-xs font-mono tracking-wider uppercase hover:border-[var(--gold)] transition-colors"
-                            style={{ borderColor: "var(--border)", color: "var(--gold)" }}
-                            title="Replay Neural Splash Screen"
-                        >
-                            <Zap size={13} className="text-[var(--gold)]" />
-                            <span>Replay Splash</span>
-                        </button>
                         <span className="font-serif text-2xl font-bold tracking-tight" style={{ color: "var(--ink)" }}>
                             CroFu<span style={{ color: "var(--gold)" }}>.</span>
                             <span className="ml-2 font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 border text-[var(--ink-2)]" style={{ borderColor: "var(--border)" }}>
