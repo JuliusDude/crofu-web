@@ -892,7 +892,7 @@ export default function Dashboard({ onNavigate }) {
                                 className="absolute p-3 border font-mono text-xs space-y-1.5 shadow-xl transition-all pointer-events-none rounded"
                                 style={{
                                     top: "16px",
-                                    left: hoveredPoint && hoveredPoint.x > 500 ? "70px" : "auto",
+                                    left: hoveredPoint && hoveredPoint.x > 500 ? "130px" : "auto",
                                     right: hoveredPoint && hoveredPoint.x <= 500 ? "20px" : "auto",
                                     background: "var(--surface)",
                                     borderColor: "var(--border)",
