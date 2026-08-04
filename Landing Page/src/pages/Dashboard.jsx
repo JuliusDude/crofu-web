@@ -357,12 +357,15 @@ export default function Dashboard({ onNavigate }) {
                                                 backgroundClip: "text",
                                                 color: "transparent",
                                                 display: "inline-block",
-                                                WebkitTextStroke: isDark
-                                                    ? (active ? "0.75px rgba(255,255,255,0.6)" : "0.5px rgba(255,255,255,0.3)")
-                                                    : (active ? "0.75px rgba(0,0,0,0.5)" : "0.5px rgba(0,0,0,0.2)"),
+                                                WebkitTextStroke: active
+                                                    ? "0.8px rgba(225, 230, 240, 0.9)"
+                                                    : "0.5px rgba(200, 205, 215, 0.65)",
+                                                textShadow: active
+                                                    ? "0 1px 2px rgba(0,0,0,0.7), 0 0 2px rgba(255,255,255,0.7)"
+                                                    : "0 1px 1px rgba(0,0,0,0.4)",
                                                 filter: isDark
-                                                    ? (active ? "brightness(1.5) contrast(1.6) saturate(1.3)" : "brightness(1.2) contrast(1.3)")
-                                                    : (active ? "brightness(1.1) contrast(1.5)" : "brightness(0.95) contrast(1.2)"),
+                                                    ? (active ? "brightness(1.4) contrast(1.5) saturate(1.2)" : "brightness(1.15) contrast(1.3)")
+                                                    : (active ? "brightness(1.1) contrast(1.4)" : "brightness(0.95) contrast(1.2)"),
                                             }}
                                         >
                                             {c.label}
