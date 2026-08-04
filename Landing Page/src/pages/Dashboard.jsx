@@ -336,17 +336,19 @@ export default function Dashboard({ onNavigate }) {
                                     <button
                                         key={key}
                                         onClick={() => setCommodity(key)}
-                                        className={`px-3.5 py-1.5 border transition-all flex items-center justify-center ${
-                                            active ? "shadow-md scale-105" : "opacity-85 hover:opacity-100"
+                                        className={`px-4 py-2 border transition-all flex items-center justify-center ${
+                                            active ? "shadow-md scale-105 border-2" : "opacity-85 hover:opacity-100"
                                         }`}
                                         style={{
                                             borderColor: active ? "var(--ink)" : "var(--border)",
-                                            background: active ? "var(--surface)" : "transparent",
+                                            background: active ? "var(--surface)" : "var(--bg)",
                                         }}
                                     >
                                         <span
-                                            className="font-black text-sm tracking-widest uppercase"
+                                            className="uppercase tracking-widest transition-all"
                                             style={{
+                                                fontWeight: 900,
+                                                fontSize: "15px",
                                                 backgroundImage: `url(${c.img})`,
                                                 backgroundSize: "cover",
                                                 backgroundPosition: "center",
@@ -355,7 +357,12 @@ export default function Dashboard({ onNavigate }) {
                                                 backgroundClip: "text",
                                                 color: "transparent",
                                                 display: "inline-block",
-                                                filter: active ? "contrast(1.4) brightness(1.15)" : "contrast(1.1) opacity(0.85)",
+                                                WebkitTextStroke: isDark
+                                                    ? (active ? "0.75px rgba(255,255,255,0.6)" : "0.5px rgba(255,255,255,0.3)")
+                                                    : (active ? "0.75px rgba(0,0,0,0.5)" : "0.5px rgba(0,0,0,0.2)"),
+                                                filter: isDark
+                                                    ? (active ? "brightness(1.5) contrast(1.6) saturate(1.3)" : "brightness(1.2) contrast(1.3)")
+                                                    : (active ? "brightness(1.1) contrast(1.5)" : "brightness(0.95) contrast(1.2)"),
                                             }}
                                         >
                                             {c.label}
