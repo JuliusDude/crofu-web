@@ -27,6 +27,7 @@ import { useTheme, toggleTheme } from "@/lib/crofuHooks";
 const COMMODITY_CONFIG = {
     tomato: {
         label: "Tomato",
+        img: "/tomatoes.jpg",
         icon: "🍅",
         unitQuintal: 2320,
         championModel: "XGBoost V3",
@@ -44,6 +45,7 @@ const COMMODITY_CONFIG = {
     },
     onion: {
         label: "Onion",
+        img: "/onion.jpg",
         icon: "🧅",
         unitQuintal: 1950,
         championModel: "ARIMA (2,1,2)",
@@ -61,6 +63,7 @@ const COMMODITY_CONFIG = {
     },
     potato: {
         label: "Potato",
+        img: "/potato.jpg",
         icon: "🥔",
         unitQuintal: 1680,
         championModel: "ARIMA (1,1,1)",
@@ -78,6 +81,7 @@ const COMMODITY_CONFIG = {
     },
     brinjal: {
         label: "Brinjal",
+        img: "/brinjal.png",
         icon: "🍆",
         unitQuintal: 2100,
         championModel: "XGBoost V2",
@@ -332,16 +336,30 @@ export default function Dashboard({ onNavigate }) {
                                     <button
                                         key={key}
                                         onClick={() => setCommodity(key)}
-                                        className={`px-3 py-1.5 border transition-all flex items-center gap-1.5 ${
-                                            active ? "font-bold shadow-sm" : "opacity-80 hover:opacity-100"
+                                        className={`px-3.5 py-1.5 border transition-all flex items-center justify-center ${
+                                            active ? "shadow-md scale-105" : "opacity-85 hover:opacity-100"
                                         }`}
                                         style={{
                                             borderColor: active ? "var(--ink)" : "var(--border)",
-                                            background: active ? "var(--ink)" : "transparent",
-                                            color: active ? "var(--bg)" : "var(--ink)",
+                                            background: active ? "var(--surface)" : "transparent",
                                         }}
                                     >
-                                        <span>{c.label}</span>
+                                        <span
+                                            className="font-black text-sm tracking-widest uppercase"
+                                            style={{
+                                                backgroundImage: `url(${c.img})`,
+                                                backgroundSize: "cover",
+                                                backgroundPosition: "center",
+                                                WebkitBackgroundClip: "text",
+                                                WebkitTextFillColor: "transparent",
+                                                backgroundClip: "text",
+                                                color: "transparent",
+                                                display: "inline-block",
+                                                filter: active ? "contrast(1.4) brightness(1.15)" : "contrast(1.1) opacity(0.85)",
+                                            }}
+                                        >
+                                            {c.label}
+                                        </span>
                                     </button>
                                 );
                             })}
