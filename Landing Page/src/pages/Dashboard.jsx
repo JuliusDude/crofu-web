@@ -587,7 +587,7 @@ export default function Dashboard({ onNavigate }) {
 
                         {/* KPI 2: Projected Target Price */}
                         <motion.div
-                            key={`kpi2-${commodity}-${forecastHorizon}-${priceUnit}`}
+                            key={`kpi2-${commodity}-${priceUnit}`}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4, delay: 0.05 }}
