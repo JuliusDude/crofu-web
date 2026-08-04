@@ -7,7 +7,7 @@ const PHRASES = [
     "Preparing your workspace...",
 ];
 
-export default function SplashScreen({ showText = true, onComplete }) {
+export default function SplashScreen({ showText = true, onPrepareUnderneath, onComplete }) {
     const [phraseIndex, setPhraseIndex] = useState(0);
     const [isExpanding, setIsExpanding] = useState(false);
 
@@ -24,16 +24,24 @@ export default function SplashScreen({ showText = true, onComplete }) {
                 });
             }, 1400);
 
+            // Mid-splash callback (1.5s): mount target page silently under 100% opaque cover
+            const prepareTimer = setTimeout(() => {
+                onPrepareUnderneath && onPrepareUnderneath();
+            }, 1500);
+
+            // At 3.4s, initiate the smooth Anthropic zoom transition into Dashboard
             const expandTimer = setTimeout(() => {
                 setIsExpanding(true);
             }, 3400);
 
+            // Complete transition at 4.3s
             const completeTimer = setTimeout(() => {
                 onComplete && onComplete();
             }, 4300);
 
             return () => {
                 clearInterval(interval);
+                clearTimeout(prepareTimer);
                 clearTimeout(expandTimer);
                 clearTimeout(completeTimer);
             };
@@ -52,11 +60,11 @@ export default function SplashScreen({ showText = true, onComplete }) {
                 clearTimeout(completeTimer);
             };
         }
-    }, [showText, onComplete]);
+    }, [showText, onPrepareUnderneath, onComplete]);
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: isExpanding ? 0 : 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.9, ease: [0.25, 1, 0.5, 1] }}
