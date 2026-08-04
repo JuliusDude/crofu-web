@@ -341,7 +341,6 @@ export default function Dashboard({ onNavigate }) {
                                             color: active ? "var(--bg)" : "var(--ink)",
                                         }}
                                     >
-                                        <span>{c.icon}</span>
                                         <span>{c.label}</span>
                                     </button>
                                 );
