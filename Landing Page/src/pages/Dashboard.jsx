@@ -401,8 +401,10 @@ export default function Dashboard({ onNavigate }) {
                                 const c = COMMODITY_CONFIG[key];
                                 const active = commodity === key;
                                 return (
-                                    <button
+                                    <motion.button
                                         key={key}
+                                        whileHover={{ scale: 1.04 }}
+                                        whileTap={{ scale: 0.96 }}
                                         onClick={() => setCommodity(key)}
                                         className={`px-4 py-2 border transition-all flex items-center justify-center ${
                                             active ? "shadow-md scale-105 border-2" : "opacity-85 hover:opacity-100"
@@ -438,7 +440,7 @@ export default function Dashboard({ onNavigate }) {
                                         >
                                             {c.label}
                                         </span>
-                                    </button>
+                                    </motion.button>
                                 );
                             })}
                         </div>
@@ -667,7 +669,8 @@ export default function Dashboard({ onNavigate }) {
 
                 {/* Section: Interactive Forecasting & Time-Series Module */}
                 {(activeTab === "forecast" || activeTab === "all") && (
-                    <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    <Reveal delay={0.1}>
+                        <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
                         <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style={{ borderColor: "var(--border)" }}>
                             <div>
                                 <h2 className="font-serif text-2xl font-bold">Interactive Forecasting & Time-Series Engine</h2>
@@ -947,259 +950,305 @@ export default function Dashboard({ onNavigate }) {
                             </div>
                         </div>
                     </section>
+                </Reveal>
                 )}
 
                 {/* Section 4: Multi-Model Benchmark & Comparison Module */}
                 {(activeTab === "benchmark" || activeTab === "all") && (
-                    <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div>
-                            <h2 className="font-serif text-2xl font-bold">Multi-Model Benchmark Matrix & Comparison</h2>
-                            <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
-                                Comparative evaluation across all evaluated time-series architectures for active commodity ({config.label})
-                            </p>
-                        </div>
+                    <Reveal delay={0.1}>
+                        <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                            <div>
+                                <h2 className="font-serif text-2xl font-bold">Multi-Model Benchmark Matrix & Comparison</h2>
+                                <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
+                                    Comparative evaluation across all evaluated time-series architectures for active commodity ({config.label})
+                                </p>
+                            </div>
 
-                        {/* Section 4.1: Performance Matrix Table */}
-                        <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
-                            <table className="w-full text-left border-collapse font-mono text-xs">
-                                <thead>
-                                    <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--border)", background: "var(--bg)" }}>
-                                        <th className="p-3">Model Architecture</th>
-                                        <th className="p-3">Test MAPE (%)</th>
-                                        <th className="p-3">Test RMSE</th>
-                                        <th className="p-3">Test MAE</th>
-                                        <th className="p-3">R² Score</th>
-                                        <th className="p-3">Direction Accuracy (%)</th>
-                                        <th className="p-3">Train Duration</th>
-                                        <th className="p-3">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[
-                                        { name: "XGBoost V3", mape: config.mape, rmse: config.rmse, mae: config.mae, r2: config.r2, dirAcc: config.dirAccuracy, time: config.trainDuration, isChamp: true },
-                                        { name: "ARIMA (2,1,2)", mape: 5.8, rmse: 132, mae: 98, r2: 0.932, dirAcc: 89.5, time: "7.4s", isChamp: false },
-                                        { name: "GRNN Neural Net", mape: 7.2, rmse: 156, mae: 115, r2: 0.918, dirAcc: 87.2, time: "18.1s", isChamp: false },
-                                        { name: "LSTM Recurrent", mape: 6.9, rmse: 148, mae: 110, r2: 0.925, dirAcc: 88.9, time: "45.0s", isChamp: false },
-                                    ].map((m, idx) => (
-                                        <tr key={idx} className="border-b hover:bg-[var(--bg)] transition-colors" style={{ borderColor: "var(--border)" }}>
-                                            <td className="p-3 font-bold flex items-center gap-2">
-                                                {m.name}
-                                                {m.isChamp && <span className="text-[10px] px-2 py-0.5 border bg-[var(--gold)] text-black font-bold uppercase">Active Champion</span>}
-                                            </td>
-                                            <td className="p-3 font-bold text-[var(--brand)]">{m.mape}%</td>
-                                            <td className="p-3">{m.rmse}</td>
-                                            <td className="p-3">{m.mae}</td>
-                                            <td className="p-3">{m.r2}</td>
-                                            <td className="p-3 text-[var(--positive)] font-semibold">{m.dirAcc}%</td>
-                                            <td className="p-3">{m.time}</td>
-                                            <td className="p-3 font-mono text-[11px]">{m.isChamp ? "Deployed" : "Candidate"}</td>
+                            {/* Section 4.1: Performance Matrix Table */}
+                            <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
+                                <table className="w-full text-left border-collapse font-mono text-xs">
+                                    <thead>
+                                        <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--border)", background: "var(--bg)" }}>
+                                            <th className="p-3">Model Architecture</th>
+                                            <th className="p-3">Test MAPE (%)</th>
+                                            <th className="p-3">Test RMSE</th>
+                                            <th className="p-3">Test MAE</th>
+                                            <th className="p-3">R² Score</th>
+                                            <th className="p-3">Direction Accuracy (%)</th>
+                                            <th className="p-3">Train Duration</th>
+                                            <th className="p-3">Status</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
+                                    </thead>
+                                    <tbody>
+                                        {[
+                                            { name: "XGBoost V3", mape: config.mape, rmse: config.rmse, mae: config.mae, r2: config.r2, dirAcc: config.dirAccuracy, time: config.trainDuration, isChamp: true },
+                                            { name: "ARIMA (2,1,2)", mape: 5.8, rmse: 132, mae: 98, r2: 0.932, dirAcc: 89.5, time: "7.4s", isChamp: false },
+                                            { name: "GRNN Neural Net", mape: 7.2, rmse: 156, mae: 115, r2: 0.918, dirAcc: 87.2, time: "18.1s", isChamp: false },
+                                            { name: "LSTM Recurrent", mape: 6.9, rmse: 148, mae: 110, r2: 0.925, dirAcc: 88.9, time: "45.0s", isChamp: false },
+                                        ].map((m, idx) => (
+                                            <motion.tr
+                                                key={idx}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ duration: 0.35, delay: idx * 0.08 }}
+                                                className="border-b hover:bg-[var(--bg)] transition-colors"
+                                                style={{ borderColor: "var(--border)" }}
+                                            >
+                                                <td className="p-3 font-bold flex items-center gap-2">
+                                                    {m.name}
+                                                    {m.isChamp && <span className="text-[10px] px-2 py-0.5 border bg-[var(--gold)] text-black font-bold uppercase">Active Champion</span>}
+                                                </td>
+                                                <td className="p-3 font-bold text-[var(--brand)]">{m.mape}%</td>
+                                                <td className="p-3">{m.rmse}</td>
+                                                <td className="p-3">{m.mae}</td>
+                                                <td className="p-3">{m.r2}</td>
+                                                <td className="p-3 text-[var(--positive)] font-semibold">{m.dirAcc}%</td>
+                                                <td className="p-3">{m.time}</td>
+                                                <td className="p-3 font-mono text-[11px]">{m.isChamp ? "Deployed" : "Candidate"}</td>
+                                            </motion.tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </Reveal>
                 )}
 
                 {/* Section 5: Prediction Evolution & Audit Module */}
                 {(activeTab === "evolution" || activeTab === "all") && (
-                    <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div>
-                            <h2 className="font-serif text-2xl font-bold">Prediction Evolution & Realized Accuracy Audit</h2>
-                            <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
-                                Empirically auditing model predictions against actual ground-truth market realizations once dates pass
-                            </p>
-                        </div>
+                    <Reveal delay={0.1}>
+                        <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                            <div>
+                                <h2 className="font-serif text-2xl font-bold">Prediction Evolution & Realized Accuracy Audit</h2>
+                                <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
+                                    Empirically auditing model predictions against actual ground-truth market realizations once dates pass
+                                </p>
+                            </div>
 
-                        {/* Audit Table */}
-                        <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
-                            <table className="w-full text-left border-collapse font-mono text-xs">
-                                <thead>
-                                    <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--bg)" }}>
-                                        <th className="p-3">Target Date</th>
-                                        <th className="p-3">Predicted Price (30d Prior)</th>
-                                        <th className="p-3">Actual Realized Price</th>
-                                        <th className="p-3">Absolute Error (|Actual - Pred|)</th>
-                                        <th className="p-3">Percentage Error (%)</th>
-                                        <th className="p-3">Within Confidence Interval</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[
-                                        { date: "2026-08-03", pred: 2310, actual: 2315, err: 5, pct: "0.21%", inside: true },
-                                        { date: "2026-08-02", pred: 2280, actual: 2295, err: 15, pct: "0.65%", inside: true },
-                                        { date: "2026-08-01", pred: 2275, actual: 2295, err: 20, pct: "0.87%", inside: true },
-                                        { date: "2026-07-31", pred: 2300, actual: 2280, err: 20, pct: "0.87%", inside: true },
-                                    ].map((row, idx) => (
-                                        <tr key={idx} className="border-b" style={{ borderColor: "var(--border)" }}>
-                                            <td className="p-3 font-bold">{row.date}</td>
-                                            <td className="p-3">₹{fmt(row.pred)}</td>
-                                            <td className="p-3 font-bold text-[var(--gold)]">₹{fmt(row.actual)}</td>
-                                            <td className="p-3">₹{fmt(row.err)}</td>
-                                            <td className="p-3 text-[var(--positive)] font-semibold">{row.pct}</td>
-                                            <td className="p-3 font-bold text-[var(--positive)] flex items-center gap-1">
-                                                <Check size={14} /> YES
-                                            </td>
+                            {/* Audit Table */}
+                            <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
+                                <table className="w-full text-left border-collapse font-mono text-xs">
+                                    <thead>
+                                        <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--bg)" }}>
+                                            <th className="p-3">Target Date</th>
+                                            <th className="p-3">Predicted Price (30d Prior)</th>
+                                            <th className="p-3">Actual Realized Price</th>
+                                            <th className="p-3">Absolute Error (|Actual - Pred|)</th>
+                                            <th className="p-3">Percentage Error (%)</th>
+                                            <th className="p-3">Within Confidence Interval</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
+                                    </thead>
+                                    <tbody>
+                                        {[
+                                            { date: "2026-08-03", pred: 2310, actual: 2315, err: 5, pct: "0.21%", inside: true },
+                                            { date: "2026-08-02", pred: 2280, actual: 2295, err: 15, pct: "0.65%", inside: true },
+                                            { date: "2026-08-01", pred: 2275, actual: 2295, err: 20, pct: "0.87%", inside: true },
+                                            { date: "2026-07-31", pred: 2300, actual: 2280, err: 20, pct: "0.87%", inside: true },
+                                        ].map((row, idx) => (
+                                            <motion.tr
+                                                key={idx}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ duration: 0.35, delay: idx * 0.08 }}
+                                                className="border-b"
+                                                style={{ borderColor: "var(--border)" }}
+                                            >
+                                                <td className="p-3 font-bold">{row.date}</td>
+                                                <td className="p-3">₹{fmt(row.pred)}</td>
+                                                <td className="p-3 font-bold text-[var(--gold)]">₹{fmt(row.actual)}</td>
+                                                <td className="p-3">₹{fmt(row.err)}</td>
+                                                <td className="p-3 text-[var(--positive)] font-semibold">{row.pct}</td>
+                                                <td className="p-3 font-bold text-[var(--positive)] flex items-center gap-1">
+                                                    <Check size={14} /> YES
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </Reveal>
                 )}
 
                 {/* Mandi-Level Regional Breakdown Module */}
                 {(activeTab === "mandis" || activeTab === "all") && (
-                    <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style={{ borderColor: "var(--border)" }}>
-                            <div>
-                                <h2 className="font-serif text-2xl font-bold">Wholesale Mandi Regional Data Breakdown</h2>
-                                <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
-                                    Granular Mandi-level price recordings, arrival volumes, and day-over-day trends
-                                </p>
-                            </div>
+                    <Reveal delay={0.1}>
+                        <section className="p-6 border space-y-6" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                            <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style={{ borderColor: "var(--border)" }}>
+                                <div>
+                                    <h2 className="font-serif text-2xl font-bold">Wholesale Mandi Regional Data Breakdown</h2>
+                                    <p className="font-mono text-xs text-[var(--ink-2)] mt-1">
+                                        Granular Mandi-level price recordings, arrival volumes, and day-over-day trends
+                                    </p>
+                                </div>
 
-                            {/* Section 6.2: Search & Sort Controls */}
-                            <div className="flex items-center gap-3">
-                                <div className="relative">
-                                    <Search size={14} className="absolute left-2.5 top-2.5 text-[var(--ink-2)]" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search Mandi or District..."
-                                        value={mandiSearch}
-                                        onChange={(e) => setMandiSearch(e.target.value)}
-                                        className="pl-8 pr-3 py-1.5 border bg-transparent font-mono text-xs focus:outline-none"
-                                        style={{ borderColor: "var(--border)", color: "var(--ink)" }}
-                                    />
+                                {/* Section 6.2: Search & Sort Controls */}
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <Search size={14} className="absolute left-2.5 top-2.5 text-[var(--ink-2)]" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search Mandi or District..."
+                                            value={mandiSearch}
+                                            onChange={(e) => setMandiSearch(e.target.value)}
+                                            className="pl-8 pr-3 py-1.5 border bg-transparent font-mono text-xs focus:outline-none"
+                                            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Section 6.1: Mandi Data Table */}
-                        <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
-                            <table className="w-full text-left border-collapse font-mono text-xs">
-                                <thead>
-                                    <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--border)", background: "var(--bg)" }}>
-                                        <th className="p-3 cursor-pointer" onClick={() => { setSortKey("name"); setSortAsc(!sortAsc); }}>
-                                            Mandi Name ↕
-                                        </th>
-                                        <th className="p-3 cursor-pointer" onClick={() => { setSortKey("district"); setSortAsc(!sortAsc); }}>
-                                            District ↕
-                                        </th>
-                                        <th className="p-3 cursor-pointer" onClick={() => { setSortKey("modal"); setSortAsc(!sortAsc); }}>
-                                            Modal Price ↕
-                                        </th>
-                                        <th className="p-3">Min Price</th>
-                                        <th className="p-3">Max Price</th>
-                                        <th className="p-3 cursor-pointer" onClick={() => { setSortKey("arrival"); setSortAsc(!sortAsc); }}>
-                                            Arrivals (T) ↕
-                                        </th>
-                                        <th className="p-3 cursor-pointer" onClick={() => { setSortKey("delta"); setSortAsc(!sortAsc); }}>
-                                            DoD Δ (%) ↕
-                                        </th>
-                                        <th className="p-3">7d Trend</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredMandis.map((m, idx) => (
-                                        <tr key={idx} className="border-b hover:bg-[var(--bg)] transition-colors" style={{ borderColor: "var(--border)" }}>
-                                            <td className="p-3 font-bold">{m.name}</td>
-                                            <td className="p-3 text-[var(--ink-2)]">{m.district}</td>
-                                            <td className="p-3 font-bold text-[var(--gold)]">₹{fmt(m.modal)}</td>
-                                            <td className="p-3">₹{fmt(m.min)}</td>
-                                            <td className="p-3">₹{fmt(m.max)}</td>
-                                            <td className="p-3">{m.arrival.toLocaleString()} T</td>
-                                            <td className={`p-3 font-bold ${m.delta >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
-                                                {m.delta >= 0 ? "+" : ""}{m.delta}%
-                                            </td>
-                                            <td className="p-3">
-                                                <span className="px-2 py-0.5 border text-[10px] uppercase font-bold" style={{ borderColor: "var(--border)" }}>
-                                                    {m.trend}
-                                                </span>
-                                            </td>
+                            {/* Section 6.1: Mandi Data Table */}
+                            <div className="overflow-x-auto border" style={{ borderColor: "var(--border)" }}>
+                                <table className="w-full text-left border-collapse font-mono text-xs">
+                                    <thead>
+                                        <tr className="border-b uppercase text-[var(--ink-2)]" style={{ borderColor: "var(--border)", background: "var(--bg)" }}>
+                                            <th className="p-3 cursor-pointer" onClick={() => { setSortKey("name"); setSortAsc(!sortAsc); }}>
+                                                Mandi Name ↕
+                                            </th>
+                                            <th className="p-3 cursor-pointer" onClick={() => { setSortKey("district"); setSortAsc(!sortAsc); }}>
+                                                District ↕
+                                            </th>
+                                            <th className="p-3 cursor-pointer" onClick={() => { setSortKey("modal"); setSortAsc(!sortAsc); }}>
+                                                Modal Price ↕
+                                            </th>
+                                            <th className="p-3">Min Price</th>
+                                            <th className="p-3">Max Price</th>
+                                            <th className="p-3 cursor-pointer" onClick={() => { setSortKey("arrival"); setSortAsc(!sortAsc); }}>
+                                                Arrivals (T) ↕
+                                            </th>
+                                            <th className="p-3 cursor-pointer" onClick={() => { setSortKey("delta"); setSortAsc(!sortAsc); }}>
+                                                DoD Δ (%) ↕
+                                            </th>
+                                            <th className="p-3">7d Trend</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
+                                    </thead>
+                                    <tbody>
+                                        {filteredMandis.map((m, idx) => (
+                                            <motion.tr
+                                                key={m.name || idx}
+                                                initial={{ opacity: 0, y: 5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.25, delay: idx * 0.04 }}
+                                                className="border-b hover:bg-[var(--bg)] transition-colors"
+                                                style={{ borderColor: "var(--border)" }}
+                                            >
+                                                <td className="p-3 font-bold">{m.name}</td>
+                                                <td className="p-3 text-[var(--ink-2)]">{m.district}</td>
+                                                <td className="p-3 font-bold text-[var(--gold)]">₹{fmt(m.modal)}</td>
+                                                <td className="p-3">₹{fmt(m.min)}</td>
+                                                <td className="p-3">₹{fmt(m.max)}</td>
+                                                <td className="p-3">{m.arrival.toLocaleString()} T</td>
+                                                <td className={`p-3 font-bold ${m.delta >= 0 ? "text-[var(--positive)]" : "text-[var(--negative)]"}`}>
+                                                    {m.delta >= 0 ? "+" : ""}{m.delta}%
+                                                </td>
+                                                <td className="p-3">
+                                                    <span className="px-2 py-0.5 border text-[10px] uppercase font-bold" style={{ borderColor: "var(--border)" }}>
+                                                        {m.trend}
+                                                    </span>
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </Reveal>
                 )}
 
                 {/* Section 7 & 8: Risk Indicators & Automated Alert Configurator */}
                 {(activeTab === "alerts" || activeTab === "all") && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Risk Indicators */}
-                        <section className="p-6 border space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                            <h2 className="font-serif text-2xl font-bold">Market Signals & Risk Indicators</h2>
-                            <div className="space-y-3 font-mono text-xs">
-                                <div className="p-3 border flex justify-between items-center" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <div className="text-[var(--ink-2)]">Harvest Window Status</div>
-                                        <div className="font-bold text-sm text-[var(--brand)]">{config.seasonStatus}</div>
-                                    </div>
-                                    <div className="font-bold text-lg">{config.seasonIndex}</div>
+                        <Reveal delay={0.1}>
+                            <section className="p-6 border space-y-4 h-full" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                                <h2 className="font-serif text-2xl font-bold">Market Signals & Risk Indicators</h2>
+                                <div className="space-y-3 font-mono text-xs">
+                                    <motion.div
+                                        whileHover={{ scale: 1.01 }}
+                                        className="p-3 border flex justify-between items-center transition-all"
+                                        style={{ borderColor: "var(--border)" }}
+                                    >
+                                        <div>
+                                            <div className="text-[var(--ink-2)]">Harvest Window Status</div>
+                                            <div className="font-bold text-sm text-[var(--brand)]">{config.seasonStatus}</div>
+                                        </div>
+                                        <div className="font-bold text-lg">{config.seasonIndex}</div>
+                                    </motion.div>
+                                    <motion.div
+                                        whileHover={{ scale: 1.01 }}
+                                        className="p-3 border flex justify-between items-center transition-all"
+                                        style={{ borderColor: "var(--border)" }}
+                                    >
+                                        <div>
+                                            <div className="text-[var(--ink-2)]">Price Volatility Risk</div>
+                                            <div className="font-bold text-sm">{config.volatilityLevel}</div>
+                                        </div>
+                                        <AlertTriangle className="text-[var(--gold)]" />
+                                    </motion.div>
+                                    <motion.div
+                                        whileHover={{ scale: 1.01 }}
+                                        className="p-3 border flex justify-between items-center transition-all"
+                                        style={{ borderColor: "var(--border)" }}
+                                    >
+                                        <div>
+                                            <div className="text-[var(--ink-2)]">Regional Supply Surplus/Deficit</div>
+                                            <div className="font-bold text-sm text-[var(--negative)]">{config.surplusIndex} Deficit Index</div>
+                                        </div>
+                                        <div className="font-mono text-xs font-bold text-[var(--negative)]">Deficit Warning</div>
+                                    </motion.div>
                                 </div>
-                                <div className="p-3 border flex justify-between items-center" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <div className="text-[var(--ink-2)]">Price Volatility Risk</div>
-                                        <div className="font-bold text-sm">{config.volatilityLevel}</div>
-                                    </div>
-                                    <AlertTriangle className="text-[var(--gold)]" />
-                                </div>
-                                <div className="p-3 border flex justify-between items-center" style={{ borderColor: "var(--border)" }}>
-                                    <div>
-                                        <div className="text-[var(--ink-2)]">Regional Supply Surplus/Deficit</div>
-                                        <div className="font-bold text-sm text-[var(--negative)]">{config.surplusIndex} Deficit Index</div>
-                                    </div>
-                                    <div className="font-mono text-xs font-bold text-[var(--negative)]">Deficit Warning</div>
-                                </div>
-                            </div>
-                        </section>
+                            </section>
+                        </Reveal>
 
                         {/* Alert Configurator */}
-                        <section className="p-6 border space-y-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                            <h2 className="font-serif text-2xl font-bold">Automated Price Alert Configurator</h2>
-                            <form
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    setAlertSaved(true);
-                                    triggerToast("Price Volatility Alert Rules Saved Successfully!");
-                                    setTimeout(() => setAlertSaved(false), 3000);
-                                }}
-                                className="space-y-3 font-mono text-xs"
-                            >
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[var(--ink-2)] block mb-1">Upper Trigger (₹/Qtl):</label>
-                                        <input
-                                            type="number"
-                                            value={alertUpper}
-                                            onChange={(e) => setAlertUpper(e.target.value)}
-                                            className="w-full p-2 border bg-transparent"
-                                            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-[var(--ink-2)] block mb-1">Lower Trigger (₹/Qtl):</label>
-                                        <input
-                                            type="number"
-                                            value={alertLower}
-                                            onChange={(e) => setAlertLower(e.target.value)}
-                                            className="w-full p-2 border bg-transparent"
-                                            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className="w-full py-2.5 border font-bold uppercase tracking-wider transition-colors hover:bg-[var(--ink)] hover:text-[var(--bg)]"
-                                    style={{ borderColor: "var(--ink)", color: "var(--ink)" }}
+                        <Reveal delay={0.15}>
+                            <section className="p-6 border space-y-4 h-full" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                                <h2 className="font-serif text-2xl font-bold">Automated Price Alert Configurator</h2>
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
+                                        setAlertSaved(true);
+                                        triggerToast("Price Volatility Alert Rules Saved Successfully!");
+                                        setTimeout(() => setAlertSaved(false), 3000);
+                                    }}
+                                    className="space-y-3 font-mono text-xs"
                                 >
-                                    {alertSaved ? "Rule Configured & Saved ✓" : "Save Price Alert Rules"}
-                                </button>
-                            </form>
-                        </section>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[var(--ink-2)] block mb-1">Upper Trigger (₹/Qtl):</label>
+                                            <input
+                                                type="number"
+                                                value={alertUpper}
+                                                onChange={(e) => setAlertUpper(e.target.value)}
+                                                className="w-full p-2 border bg-transparent"
+                                                style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[var(--ink-2)] block mb-1">Lower Trigger (₹/Qtl):</label>
+                                            <input
+                                                type="number"
+                                                value={alertLower}
+                                                onChange={(e) => setAlertLower(e.target.value)}
+                                                className="w-full p-2 border bg-transparent"
+                                                style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.01 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        className="w-full py-2.5 border font-bold uppercase tracking-wider transition-colors hover:bg-[var(--ink)] hover:text-[var(--bg)]"
+                                        style={{ borderColor: "var(--ink)", color: "var(--ink)" }}
+                                    >
+                                        {alertSaved ? "Rule Configured & Saved ✓" : "Save Price Alert Rules"}
+                                    </motion.button>
+                                </form>
+                            </section>
+                        </Reveal>
                     </div>
                 )}
             </main>
