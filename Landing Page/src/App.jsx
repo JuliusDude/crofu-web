@@ -45,19 +45,15 @@ function App() {
   };
 
   return (
-    <>
-      <AnimatePresence mode="wait">
-        {isSplashing && (
-          <SplashScreen key="splash" onComplete={handleSplashComplete} />
-        )}
-      </AnimatePresence>
-
-      {page === "dashboard" ? (
-        <Dashboard onNavigate={triggerNavigation} />
+    <AnimatePresence mode="wait">
+      {isSplashing ? (
+        <SplashScreen key="splash" onComplete={handleSplashComplete} />
+      ) : page === "dashboard" ? (
+        <Dashboard key="dashboard" onNavigate={triggerNavigation} />
       ) : (
-        <Crofu onNavigate={triggerNavigation} />
+        <Crofu key="landing" onNavigate={triggerNavigation} />
       )}
-    </>
+    </AnimatePresence>
   );
 }
 
