@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useMemo, useRef } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
     TrendingUp,
     TrendingDown,
@@ -21,7 +21,24 @@ import {
     Code,
     Filter,
 } from "lucide-react";
-import { useTheme, toggleTheme } from "@/lib/crofuHooks";
+import { useLenis, useTheme, toggleTheme } from "@/lib/crofuHooks";
+
+/* ---------- Reveal wrapper for Framer Motion scroll animations ---------- */
+function Reveal({ children, delay = 0, y = 20, className = "" }) {
+    const ref = useRef(null);
+    const inView = useInView(ref, { once: true, margin: "-50px" });
+    return (
+        <motion.div
+            ref={ref}
+            initial={{ opacity: 0, y }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, ease: [0.7, 0, 0.15, 1], delay }}
+            className={className}
+        >
+            {children}
+        </motion.div>
+    );
+}
 
 /* ---------- Mock Master Dataset for Dashboard Analytics ---------- */
 const COMMODITY_CONFIG = {
@@ -158,6 +175,7 @@ function generateSeries(basePrice) {
 /* ---------- Main Dashboard Component ---------- */
 export default function Dashboard({ onNavigate }) {
     useTheme();
+    useLenis();
 
     const [isDark, setIsDark] = useState(false);
     React.useEffect(() => {
@@ -525,78 +543,115 @@ export default function Dashboard({ onNavigate }) {
                 </div>
 
                 {/* Key Performance Indicators (KPI Summary Cards) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {/* KPI 1: Current Observed Price */}
-                    <div className="p-5 border flex flex-col justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Observed Price</div>
-                        <div className="my-3">
-                            <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--gold)" }}>
-                                ₹{fmt(seriesData.currentObserved)}
+                <Reveal delay={0.05}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {/* KPI 1: Current Observed Price */}
+                        <motion.div
+                            key={`kpi1-${commodity}-${priceUnit}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            className="p-5 border flex flex-col justify-between"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Observed Price</div>
+                            <div className="my-3">
+                                <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--gold)" }}>
+                                    ₹{fmt(seriesData.currentObserved)}
+                                </div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">{unitLabel} · 2026-08-04</div>
                             </div>
-                            <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">{unitLabel} · 2026-08-04</div>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--positive)] font-semibold">
-                            <TrendingUp size={14} />
-                            <span>+₹{fmt(45)} (+1.98%) 24h</span>
-                        </div>
-                    </div>
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--positive)] font-semibold">
+                                <TrendingUp size={14} />
+                                <span>+₹{fmt(45)} (+1.98%) 24h</span>
+                            </div>
+                        </motion.div>
 
-                    {/* KPI 2: Projected Target Price */}
-                    <div className="p-5 border flex flex-col justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Target Price ({forecastHorizon}d)</div>
-                        <div className="my-3">
-                            <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--ink)" }}>
-                                ₹{fmt(targetFc?.predicted)}
+                        {/* KPI 2: Projected Target Price */}
+                        <motion.div
+                            key={`kpi2-${commodity}-${forecastHorizon}-${priceUnit}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.05 }}
+                            className="p-5 border flex flex-col justify-between"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Target Price ({forecastHorizon}d)</div>
+                            <div className="my-3">
+                                <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--ink)" }}>
+                                    ₹{fmt(targetFc?.predicted)}
+                                </div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">Expected {targetFc?.date}</div>
                             </div>
-                            <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">Expected {targetFc?.date}</div>
-                        </div>
-                        <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--positive)] font-semibold">
-                            <span>Net Shift: +₹{fmt(targetFc?.predicted - seriesData.currentObserved)} (+6.7%)</span>
-                        </div>
-                    </div>
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--positive)] font-semibold">
+                                <span>Net Shift: +₹{fmt(targetFc?.predicted - seriesData.currentObserved)} (+6.7%)</span>
+                            </div>
+                        </motion.div>
 
-                    {/* KPI 3: Expected Range & Volatility */}
-                    <div className="p-5 border flex flex-col justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Price Range & Volatility</div>
-                        <div className="my-2 space-y-1 font-mono text-xs">
-                            <div className="flex justify-between">
-                                <span className="text-[var(--ink-2)]">Min:</span>
-                                <span className="font-bold">₹{fmt(targetFc?.lower)}</span>
+                        {/* KPI 3: Expected Range & Volatility */}
+                        <motion.div
+                            key={`kpi3-${commodity}-${priceUnit}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.1 }}
+                            className="p-5 border flex flex-col justify-between"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Price Range & Volatility</div>
+                            <div className="my-2 space-y-1 font-mono text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-[var(--ink-2)]">Min:</span>
+                                    <span className="font-bold">₹{fmt(targetFc?.lower)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[var(--ink-2)]">Max:</span>
+                                    <span className="font-bold">₹{fmt(targetFc?.upper)}</span>
+                                </div>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-[var(--ink-2)]">Max:</span>
-                                <span className="font-bold">₹{fmt(targetFc?.upper)}</span>
+                            <div className="font-mono text-[11px] text-[var(--ink-2)] pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+                                Volatility σ = {fmt(84.2)}
                             </div>
-                        </div>
-                        <div className="font-mono text-[11px] text-[var(--ink-2)] pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-                            Volatility σ = {fmt(84.2)}
-                        </div>
-                    </div>
+                        </motion.div>
 
-                    {/* KPI 4: Market Supply & Arrivals */}
-                    <div className="p-5 border flex flex-col justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Market Arrivals</div>
-                        <div className="my-3">
-                            <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--brand)" }}>
-                                4,850 <span className="text-xs font-mono text-[var(--ink-2)] font-normal">Tonnes</span>
+                        {/* KPI 4: Market Supply & Arrivals */}
+                        <motion.div
+                            key={`kpi4-${commodity}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.15 }}
+                            className="p-5 border flex flex-col justify-between"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Market Arrivals</div>
+                            <div className="my-3">
+                                <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--brand)" }}>
+                                    4,850 <span className="text-xs font-mono text-[var(--ink-2)] font-normal">Tonnes</span>
+                                </div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">7d Moving Avg: 4,620 T</div>
                             </div>
-                            <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">7d Moving Avg: 4,620 T</div>
-                        </div>
-                        <div className="font-mono text-xs text-[var(--positive)]">Supply Delta: +4.98%</div>
-                    </div>
+                            <div className="font-mono text-xs text-[var(--positive)]">Supply Delta: +4.98%</div>
+                        </motion.div>
 
-                    {/* KPI 5: Active Champion Model */}
-                    <div className="p-5 border flex flex-col justify-between" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Active Model</div>
-                        <div className="my-3">
-                            <div className="font-serif text-xl font-bold" style={{ color: "var(--ink)" }}>
-                                {config.championModel}
+                        {/* KPI 5: Active Champion Model */}
+                        <motion.div
+                            key={`kpi5-${commodity}`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.2 }}
+                            className="p-5 border flex flex-col justify-between"
+                            style={{ borderColor: "var(--border)", background: "var(--surface)" }}
+                        >
+                            <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Active Model</div>
+                            <div className="my-3">
+                                <div className="font-serif text-xl font-bold" style={{ color: "var(--ink)" }}>
+                                    {config.championModel}
+                                </div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">MAPE: <span className="text-[var(--brand)] font-bold">{config.mape}%</span> · RMSE: {config.rmse}</div>
                             </div>
-                            <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">MAPE: <span className="text-[var(--brand)] font-bold">{config.mape}%</span> · RMSE: {config.rmse}</div>
-                        </div>
-                        <div className="font-mono text-[10px] text-[var(--ink-2)]">Retrained: {config.lastRetrained}</div>
+                            <div className="font-mono text-[10px] text-[var(--ink-2)]">Retrained: {config.lastRetrained}</div>
+                        </motion.div>
                     </div>
-                </div>
+                </Reveal>
 
                 {/* Section: Interactive Forecasting & Time-Series Module */}
                 {(activeTab === "forecast" || activeTab === "all") && (
