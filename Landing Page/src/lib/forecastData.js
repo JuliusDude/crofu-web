@@ -32,7 +32,7 @@ export const COMMODITIES = [
         mape: 6.4,
         rmse: 142,
         mae: 108,
-        img: "https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=900&q=80&auto=format",
+        img: "/tomatoes.jpg",
     },
     {
         key: "onion",
@@ -41,7 +41,7 @@ export const COMMODITIES = [
         mape: 5.1,
         rmse: 118,
         mae: 89,
-        img: "https://images.unsplash.com/photo-1580201092675-a0a6a6cafbb1?w=900&q=80&auto=format",
+        img: "/onion.jpg",
     },
     {
         key: "potato",
@@ -50,7 +50,7 @@ export const COMMODITIES = [
         mape: 4.3,
         rmse: 95,
         mae: 72,
-        img: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=900&q=80&auto=format",
+        img: "/potato.jpg",
     },
     {
         key: "brinjal",
@@ -59,7 +59,7 @@ export const COMMODITIES = [
         mape: 7.8,
         rmse: 168,
         mae: 128,
-        img: "https://images.unsplash.com/photo-1601648764658-cf37e8c89b70?w=900&q=80&auto=format",
+        img: "/brinjal.png",
     },
 ];
 
