@@ -1,0 +1,268 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --bg: #f6f2e7;
+    --surface: #ffffff;
+    --ink: #1c231e;
+    --ink-2: #5c6659;
+    --border: #e3ddcb;
+    --brand: #204a38;
+    --sage: #7c9c7f;
+    --gold: #b8872e;
+    --positive: #4c7a52;
+    --negative: #b85c42;
+
+    --font-serif: "Fraunces", ui-serif, Georgia, serif;
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --background: 44 35% 94%;
+    --foreground: 130 12% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 130 12% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 130 12% 12%;
+    --primary: 150 40% 20%;
+    --primary-foreground: 44 35% 94%;
+    --secondary: 44 20% 88%;
+    --secondary-foreground: 130 12% 12%;
+    --muted: 44 20% 88%;
+    --muted-foreground: 120 6% 38%;
+    --accent: 44 20% 88%;
+    --accent-foreground: 130 12% 12%;
+    --destructive: 12 47% 49%;
+    --destructive-foreground: 44 35% 94%;
+    --border-color: 43 34% 84%;
+    --input: 43 34% 84%;
+    --ring: 150 40% 20%;
+    --radius: 0.25rem;
+}
+
+.dark {
+    --bg: #0f1613;
+    --surface: #171f1a;
+    --ink: #ece7d9;
+    --ink-2: #93a090;
+    --border: #2a342d;
+    --brand: #3e8b63;
+    --sage: #8fb08f;
+    --gold: #e0ac4c;
+    --positive: #5fa26a;
+    --negative: #d97b5c;
+
+    --background: 150 20% 7%;
+    --foreground: 44 30% 89%;
+    --card: 150 15% 10%;
+    --card-foreground: 44 30% 89%;
+    --popover: 150 15% 10%;
+    --popover-foreground: 44 30% 89%;
+    --primary: 150 40% 40%;
+    --primary-foreground: 44 30% 89%;
+    --secondary: 150 12% 15%;
+    --secondary-foreground: 44 30% 89%;
+    --muted: 150 12% 15%;
+    --muted-foreground: 120 10% 62%;
+    --accent: 150 12% 15%;
+    --accent-foreground: 44 30% 89%;
+    --border-color: 150 10% 18%;
+    --input: 150 10% 18%;
+    --ring: 150 40% 40%;
+}
+
+* {
+    border-color: hsl(var(--border-color));
+}
+
+html {
+    scroll-behavior: auto;
+}
+
+html.lenis,
+html.lenis body {
+    height: auto;
+}
+.lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+    overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+    pointer-events: none;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+::selection {
+    background: var(--brand);
+    color: var(--bg);
+}
+
+.font-serif {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+}
+.font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.font-sans {
+    font-family: var(--font-sans);
+}
+
+.tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+/* Focus */
+:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+.dark :focus-visible {
+    outline-color: var(--gold);
+}
+
+/* Grain overlay */
+.grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.85'/></svg>");
+}
+.dark .grain::before {
+    mix-blend-mode: screen;
+    opacity: 0.06;
+}
+
+/* Marquee */
+@keyframes crofu-marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+.marquee-track {
+    display: flex;
+    gap: 0;
+    width: max-content;
+    animation: crofu-marquee 60s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .marquee-track {
+        animation: none;
+    }
+    * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Mask reveal for hero lines */
+.line-mask {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.15em;
+    margin-bottom: -0.15em;
+}
+.line-inner {
+    display: inline-block;
+    will-change: transform;
+}
+
+/* Underline link */
+.linky {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.linky::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -3px;
+    height: 1px;
+    background: currentColor;
+    transform-origin: right;
+    transform: scaleX(1);
+    transition: transform 0.5s cubic-bezier(0.7, 0, 0.15, 1);
+}
+.linky:hover::after {
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: linky-in 0.6s 0.3s forwards cubic-bezier(0.7, 0, 0.15, 1);
+}
+@keyframes linky-in {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+/* Buttons */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--brand);
+    color: var(--bg);
+    padding: 0.95rem 1.6rem;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    border: 1px solid var(--brand);
+    transition: background 0.35s ease, transform 0.35s ease;
+}
+.btn-primary:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+}
+.dark .btn-primary {
+    color: #0f1613;
+}
+.dark .btn-primary:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #0f1613;
+}
+
+.code-block {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.25rem 1.4rem;
+    overflow-x: auto;
+    color: var(--ink);
+}
+
+.parallax-blob {
+    position: absolute;
+    pointer-events: none;
+    filter: blur(0.5px);
+    opacity: 0.6;
+}
