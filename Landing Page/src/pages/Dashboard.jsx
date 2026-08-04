@@ -155,6 +155,19 @@ function generateSeries(basePrice) {
 export default function Dashboard({ onNavigate }) {
     useTheme();
 
+    const [isDark, setIsDark] = useState(false);
+    React.useEffect(() => {
+        const check = () =>
+            setIsDark(document.documentElement.classList.contains("dark"));
+        check();
+        const observer = new MutationObserver(check);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+        return () => observer.disconnect();
+    }, []);
+
     // Global Controls State
     const [region, setRegion] = useState("national");
     const [commodity, setCommodity] = useState("tomato");
@@ -293,11 +306,15 @@ export default function Dashboard({ onNavigate }) {
 
                         {/* Theme Switcher */}
                         <button
-                            onClick={toggleTheme}
-                            className="px-3 py-1.5 border text-xs tracking-wider uppercase"
+                            onClick={() => {
+                                toggleTheme();
+                                setIsDark(document.documentElement.classList.contains("dark"));
+                            }}
+                            className="px-3 py-1.5 border text-xs tracking-wider uppercase font-mono cursor-pointer transition-colors hover:border-[var(--ink)]"
                             style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                            data-testid="dashboard-theme-toggle"
                         >
-                            Theme Mode
+                            {isDark ? "Light" : "Dark"}
                         </button>
                     </div>
                 </div>
