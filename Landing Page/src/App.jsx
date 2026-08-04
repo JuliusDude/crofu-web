@@ -8,6 +8,7 @@ function App() {
   const [page, setPage] = useState(() => {
     return window.location.hash === "#dashboard" ? "dashboard" : "landing";
   });
+  const [isInitialSplash, setIsInitialSplash] = useState(true);
   const [isSplashing, setIsSplashing] = useState(false);
   const [pendingPage, setPendingPage] = useState(null);
 
@@ -46,8 +47,18 @@ function App() {
 
   return (
     <AnimatePresence mode="wait">
-      {isSplashing ? (
-        <SplashScreen key="splash" onComplete={handleSplashComplete} />
+      {isInitialSplash ? (
+        <SplashScreen
+          key="initial-splash"
+          showText={false}
+          onComplete={() => setIsInitialSplash(false)}
+        />
+      ) : isSplashing ? (
+        <SplashScreen
+          key="splash"
+          showText={true}
+          onComplete={handleSplashComplete}
+        />
       ) : page === "dashboard" ? (
         <Dashboard key="dashboard" onNavigate={triggerNavigation} />
       ) : (

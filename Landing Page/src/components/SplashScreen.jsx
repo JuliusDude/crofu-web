@@ -7,45 +7,59 @@ const PHRASES = [
     "Preparing your workspace...",
 ];
 
-export default function SplashScreen({ onComplete }) {
+export default function SplashScreen({ showText = true, onComplete }) {
     const [phraseIndex, setPhraseIndex] = useState(0);
     const [isExpanding, setIsExpanding] = useState(false);
 
     useEffect(() => {
-        // Spacious, unhurried 1.4s phrase rotation
-        const interval = setInterval(() => {
-            setPhraseIndex((prev) => {
-                if (prev < PHRASES.length - 1) {
-                    return prev + 1;
-                }
+        if (showText) {
+            // Unhurried phrase rotation for Dashboard transition
+            const interval = setInterval(() => {
+                setPhraseIndex((prev) => {
+                    if (prev < PHRASES.length - 1) {
+                        return prev + 1;
+                    }
+                    clearInterval(interval);
+                    return prev;
+                });
+            }, 1400);
+
+            const expandTimer = setTimeout(() => {
+                setIsExpanding(true);
+            }, 3400);
+
+            const completeTimer = setTimeout(() => {
+                onComplete && onComplete();
+            }, 4300);
+
+            return () => {
                 clearInterval(interval);
-                return prev;
-            });
-        }, 1400);
+                clearTimeout(expandTimer);
+                clearTimeout(completeTimer);
+            };
+        } else {
+            // Minimal textless splash for initial Landing Page load
+            const expandTimer = setTimeout(() => {
+                setIsExpanding(true);
+            }, 1200);
 
-        // At 3.4s, initiate the smooth Anthropic zoom transition into Dashboard
-        const expandTimer = setTimeout(() => {
-            setIsExpanding(true);
-        }, 3400);
+            const completeTimer = setTimeout(() => {
+                onComplete && onComplete();
+            }, 2000);
 
-        // Complete transition at 4.3s
-        const completeTimer = setTimeout(() => {
-            onComplete && onComplete();
-        }, 4300);
-
-        return () => {
-            clearInterval(interval);
-            clearTimeout(expandTimer);
-            clearTimeout(completeTimer);
-        };
-    }, [onComplete]);
+            return () => {
+                clearTimeout(expandTimer);
+                clearTimeout(completeTimer);
+            };
+        }
+    }, [showText, onComplete]);
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: isExpanding ? 0 : 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.0, ease: [0.25, 1, 0.5, 1] }}
+            transition={{ duration: 0.9, ease: [0.25, 1, 0.5, 1] }}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 select-none overflow-hidden"
             style={{
                 background: "var(--bg, #0f1613)",
@@ -74,8 +88,8 @@ export default function SplashScreen({ onComplete }) {
                     </h1>
                 </motion.div>
 
-                {/* Anthropic-style Serene Status Text with Silky 0.9s Dissolve */}
-                {!isExpanding && (
+                {/* Anthropic-style Serene Status Text (Only displayed if showText is true) */}
+                {showText && !isExpanding && (
                     <div className="h-8 flex items-center justify-center overflow-hidden">
                         <AnimatePresence mode="wait">
                             <motion.p
