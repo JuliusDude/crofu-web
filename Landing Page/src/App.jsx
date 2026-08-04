@@ -10,38 +10,41 @@ function App() {
   });
   const [isInitialSplash, setIsInitialSplash] = useState(true);
   const [isSplashing, setIsSplashing] = useState(false);
-  const [pendingPage, setPendingPage] = useState(null);
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hashPage = window.location.hash === "#dashboard" ? "dashboard" : "landing";
-      if (hashPage !== page) {
-        triggerNavigation(hashPage);
+      // Guard against hashchange triggering duplicate splash screens
+      if (isSplashing || isInitialSplash) return;
+      const target = window.location.hash === "#dashboard" ? "dashboard" : "landing";
+      if (target !== page) {
+        if (target === "dashboard") {
+          setIsSplashing(true);
+        } else {
+          setPage("landing");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
       }
     };
 
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [page]);
+  }, [page, isSplashing, isInitialSplash]);
 
   const triggerNavigation = (targetPage) => {
+    if (isSplashing) return;
     if (targetPage === "dashboard") {
-      setPendingPage("dashboard");
+      window.location.hash = "#dashboard";
       setIsSplashing(true);
     } else {
-      setPage("landing");
       window.location.hash = "#landing";
+      setPage("landing");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handleSplashComplete = () => {
+    setPage("dashboard");
     setIsSplashing(false);
-    if (pendingPage) {
-      setPage(pendingPage);
-      window.location.hash = `#${pendingPage}`;
-      setPendingPage(null);
-    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -55,7 +58,7 @@ function App() {
         />
       ) : isSplashing ? (
         <SplashScreen
-          key="splash"
+          key="dashboard-splash"
           showText={true}
           onComplete={handleSplashComplete}
         />
