@@ -13,7 +13,6 @@ function App() {
 
   useEffect(() => {
     const handleHashChange = () => {
-      // Guard against hashchange triggering duplicate splash screens
       if (isSplashing || isInitialSplash) return;
       const target = window.location.hash === "#dashboard" ? "dashboard" : "landing";
       if (target !== page) {
@@ -49,25 +48,34 @@ function App() {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      {isInitialSplash ? (
-        <SplashScreen
-          key="initial-splash"
-          showText={false}
-          onComplete={() => setIsInitialSplash(false)}
-        />
-      ) : isSplashing ? (
-        <SplashScreen
-          key="dashboard-splash"
-          showText={true}
-          onComplete={handleSplashComplete}
-        />
-      ) : page === "dashboard" ? (
-        <Dashboard key="dashboard" onNavigate={triggerNavigation} />
-      ) : (
-        <Crofu key="landing" onNavigate={triggerNavigation} />
-      )}
-    </AnimatePresence>
+    <div className="relative min-h-screen bg-[var(--bg,#0f1613)]">
+      {/* Active Page Component - Pre-rendered underneath overlay for zero-latency reveal */}
+      <AnimatePresence mode="popLayout">
+        {page === "dashboard" ? (
+          <Dashboard key="dashboard" onNavigate={triggerNavigation} />
+        ) : (
+          <Crofu key="landing" onNavigate={triggerNavigation} />
+        )}
+      </AnimatePresence>
+
+      {/* Splash Overlays - Layered on top with high z-index */}
+      <AnimatePresence>
+        {isInitialSplash && (
+          <SplashScreen
+            key="initial-splash"
+            showText={false}
+            onComplete={() => setIsInitialSplash(false)}
+          />
+        )}
+        {isSplashing && (
+          <SplashScreen
+            key="dashboard-splash"
+            showText={true}
+            onComplete={handleSplashComplete}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
