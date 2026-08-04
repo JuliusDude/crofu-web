@@ -17,6 +17,7 @@ function App() {
       const target = window.location.hash === "#dashboard" ? "dashboard" : "landing";
       if (target !== page) {
         if (target === "dashboard") {
+          setPage("dashboard");
           setIsSplashing(true);
         } else {
           setPage("landing");
@@ -33,6 +34,7 @@ function App() {
     if (isSplashing) return;
     if (targetPage === "dashboard") {
       window.location.hash = "#dashboard";
+      setPage("dashboard"); // Switch page IMMEDIATELY under the splash cover
       setIsSplashing(true);
     } else {
       window.location.hash = "#landing";
@@ -42,14 +44,13 @@ function App() {
   };
 
   const handleSplashComplete = () => {
-    setPage("dashboard");
     setIsSplashing(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <div className="relative min-h-screen bg-[var(--bg,#0f1613)]">
-      {/* Active Page Component - Pre-rendered underneath overlay for zero-latency reveal */}
+      {/* Active Page Component - Pre-rendered underneath splash overlay for seamless reveal */}
       <AnimatePresence mode="popLayout">
         {page === "dashboard" ? (
           <Dashboard key="dashboard" onNavigate={triggerNavigation} />
@@ -58,7 +59,7 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Splash Overlays - Layered on top with high z-index */}
+      {/* Splash Overlays - Layered on top with z-index: 100 */}
       <AnimatePresence>
         {isInitialSplash && (
           <SplashScreen
