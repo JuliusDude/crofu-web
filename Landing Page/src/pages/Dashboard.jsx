@@ -224,6 +224,44 @@ export default function Dashboard({ onNavigate }) {
     const activeForecast = seriesData.forecast.slice(0, horizonDays);
     const targetFc = activeForecast[activeForecast.length - 1];
 
+    // Dynamic Chart Scaling & Math Computation
+    const chartMath = useMemo(() => {
+        const histActuals = seriesData.history.map((h) => h.actual);
+        const fcLowers = activeForecast.map((f) => f.lower);
+        const fcUppers = activeForecast.map((f) => f.upper);
+        const allVals = [...histActuals, ...fcLowers, ...fcUppers];
+
+        const minVal = Math.min(...allVals) * 0.94;
+        const maxVal = Math.max(...allVals) * 1.06;
+
+        const getY = (val) => {
+            if (scaleType === "log") {
+                const logMin = Math.log(Math.max(1, minVal));
+                const logMax = Math.log(Math.max(1, maxVal));
+                const logVal = Math.log(Math.max(1, val));
+                return 350 - ((logVal - logMin) / (logMax - logMin)) * 310;
+            }
+            return 350 - ((val - minVal) / (maxVal - minVal)) * 310;
+        };
+
+        const historyPoints = seriesData.history.map((h, i) => {
+            const x = 50 + i * (440 / Math.max(1, seriesData.history.length - 1));
+            const y = getY(h.actual);
+            const yMa = getY(h.ma7);
+            return { ...h, x, y, yMa, type: "history" };
+        });
+
+        const forecastPoints = activeForecast.map((f, i) => {
+            const x = 510 + i * (440 / Math.max(1, activeForecast.length - 1));
+            const y = getY(f.predicted);
+            const yLower = getY(f.lower);
+            const yUpper = getY(f.upper);
+            return { ...f, x, y, yLower, yUpper, type: "forecast" };
+        });
+
+        return { minVal, maxVal, getY, historyPoints, forecastPoints };
+    }, [seriesData, activeForecast, scaleType]);
+
     // Filter & Sort Mandis
     const filteredMandis = useMemo(() => {
         return ALL_MANDIS.filter(
@@ -595,93 +633,217 @@ export default function Dashboard({ onNavigate }) {
                             </div>
                         </div>
 
-                        {/* Custom SVG Interactive Chart Architecture */}
-                        <div className="relative w-full h-[420px] select-none font-mono text-[10px]">
+                        <div
+                            className="relative w-full h-[440px] select-none font-mono text-[10px]"
+                            onMouseMove={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const clientX = e.clientX - rect.left;
+                                const svgX = (clientX / rect.width) * 1000;
+                                const allPts = [...chartMath.historyPoints, ...chartMath.forecastPoints];
+                                let closest = allPts[0];
+                                let minDist = Math.abs(svgX - closest.x);
+                                for (let p of allPts) {
+                                    const dist = Math.abs(svgX - p.x);
+                                    if (dist < minDist) {
+                                        minDist = dist;
+                                        closest = p;
+                                    }
+                                }
+                                setHoveredPoint(closest);
+                            }}
+                            onMouseLeave={() => setHoveredPoint(null)}
+                        >
                             <svg className="w-full h-full overflow-visible" viewBox="0 0 1000 400" preserveAspectRatio="none">
-                                {/* Grid lines */}
-                                {[0, 100, 200, 300, 400].map((y) => (
-                                    <line key={y} x1="0" y1={y} x2="1000" y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3 3" />
-                                ))}
+                                <defs>
+                                    <linearGradient id="confidenceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.25" />
+                                        <stop offset="100%" stopColor="var(--gold)" stopOpacity="0.05" />
+                                    </linearGradient>
+                                    <linearGradient id="historyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.2" />
+                                        <stop offset="100%" stopColor="var(--brand)" stopOpacity="0.0" />
+                                    </linearGradient>
+                                </defs>
 
-                                {/* Vertical Chronological Cutoff Line (t=0) at x=500 */}
-                                <line x1="500" y1="0" x2="500" y2="400" stroke="var(--ink-2)" strokeWidth="1.5" strokeDasharray="4 4" />
-                                <text x="508" y="20" fill="var(--ink-2)" fontWeight="bold">PRESENT (t=0)</text>
+                                {/* Y-Axis Horizontal Grid Lines & Dynamic Price Labels */}
+                                {[0, 1, 2, 3, 4].map((step) => {
+                                    const yPos = 350 - step * (310 / 4);
+                                    const priceStep = chartMath.minVal + step * ((chartMath.maxVal - chartMath.minVal) / 4);
+                                    return (
+                                        <g key={step}>
+                                            <line x1="40" y1={yPos} x2="960" y2={yPos} stroke="var(--border)" strokeWidth="0.75" strokeDasharray="3 3" />
+                                            <text x="5" y={yPos + 4} fill="var(--ink-2)" fontSize="10">
+                                                ₹{fmt(priceStep)}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Chronological Present Cutoff Line (t=0) */}
+                                <line x1="500" y1="20" x2="500" y2="360" stroke="var(--gold)" strokeWidth="1.5" strokeDasharray="4 4" />
+                                <text x="506" y="32" fill="var(--gold)" fontWeight="bold" fontSize="10">
+                                    PRESENT (t=0)
+                                </text>
 
                                 {/* Shaded Confidence Band Polygon */}
-                                {showConfidence && (
+                                {showConfidence && chartMath.forecastPoints.length > 0 && (
                                     <polygon
                                         points={
-                                            activeForecast
-                                                .map((f, i) => `${500 + i * (500 / activeForecast.length)},${350 - (f.upper - 1800) * 0.3}`)
+                                            chartMath.forecastPoints
+                                                .map((f) => `${f.x},${f.yUpper}`)
                                                 .join(" ") +
                                             " " +
-                                            activeForecast
+                                            chartMath.forecastPoints
                                                 .slice()
                                                 .reverse()
-                                                .map((f, i) => `${500 + (activeForecast.length - 1 - i) * (500 / activeForecast.length)},${350 - (f.lower - 1800) * 0.3}`)
+                                                .map((f) => `${f.x},${f.yLower}`)
                                                 .join(" ")
                                         }
-                                        fill="var(--gold)"
-                                        fillOpacity="0.15"
+                                        fill="url(#confidenceGrad)"
                                     />
                                 )}
 
                                 {/* Market Arrivals Overlay Bars */}
                                 {showArrivals &&
-                                    seriesData.history.map((h, i) => {
-                                        const x = i * (500 / seriesData.history.length);
-                                        const hHeight = (h.arrival / 5000) * 100;
-                                        return <rect key={i} x={x} y={400 - hHeight} width="8" height={hHeight} fill="var(--sage)" opacity="0.3" />;
+                                    chartMath.historyPoints.map((h, i) => {
+                                        const barH = (h.arrival / 6000) * 80;
+                                        return (
+                                            <rect
+                                                key={i}
+                                                x={h.x - 3}
+                                                y={350 - barH}
+                                                width="6"
+                                                height={barH}
+                                                fill="var(--sage)"
+                                                opacity="0.35"
+                                                rx="1"
+                                            />
+                                        );
                                     })}
+
+                                {/* Historical Area Gradient Fill */}
+                                <polygon
+                                    points={
+                                        `50,350 ` +
+                                        chartMath.historyPoints.map((h) => `${h.x},${h.y}`).join(" ") +
+                                        ` 490,350`
+                                    }
+                                    fill="url(#historyGrad)"
+                                />
 
                                 {/* Historical Observed Price Line */}
                                 <path
-                                    d={seriesData.history
-                                        .map((h, i) => `${i === 0 ? "M" : "L"} ${i * (500 / seriesData.history.length)} ${350 - (h.actual - 1800) * 0.3}`)
-                                        .join(" ")}
+                                    d={chartMath.historyPoints.map((h, i) => `${i === 0 ? "M" : "L"} ${h.x} ${h.y}`).join(" ")}
                                     fill="none"
                                     stroke="var(--ink)"
                                     strokeWidth="2.5"
+                                    strokeLinecap="round"
                                 />
+
+                                {/* 7-Day Moving Average Line */}
+                                {showMA && (
+                                    <path
+                                        d={chartMath.historyPoints.map((h, i) => `${i === 0 ? "M" : "L"} ${h.x} ${h.yMa}`).join(" ")}
+                                        fill="none"
+                                        stroke="var(--brand)"
+                                        strokeWidth="1.5"
+                                        strokeDasharray="2 2"
+                                        opacity="0.85"
+                                    />
+                                )}
 
                                 {/* Forecast Trajectory Dashed Line */}
                                 <path
                                     d={
-                                        "M 500 " +
-                                        (350 - (seriesData.currentObserved - 1800) * 0.3) +
-                                        " " +
-                                        activeForecast
-                                            .map((f, i) => `L ${500 + (i + 1) * (500 / activeForecast.length)} ${350 - (f.predicted - 1800) * 0.3}`)
-                                            .join(" ")
+                                        `M 490 ${chartMath.historyPoints[chartMath.historyPoints.length - 1]?.y || 200} ` +
+                                        chartMath.forecastPoints.map((f) => `L ${f.x} ${f.y}`).join(" ")
                                     }
                                     fill="none"
                                     stroke="var(--gold)"
                                     strokeWidth="2.5"
-                                    strokeDasharray="5 5"
+                                    strokeDasharray="6 4"
                                 />
 
-                                {/* Moving Average Line */}
-                                {showMA && (
-                                    <path
-                                        d={seriesData.history
-                                            .map((h, i) => `${i === 0 ? "M" : "L"} ${i * (500 / seriesData.history.length)} ${350 - (h.ma7 - 1800) * 0.3}`)
-                                            .join(" ")}
-                                        fill="none"
-                                        stroke="var(--brand)"
-                                        strokeWidth="1.2"
-                                        opacity="0.8"
-                                    />
+                                {/* Forecast Upper & Lower Bound Boundary Lines */}
+                                {showConfidence && (
+                                    <>
+                                        <path
+                                            d={chartMath.forecastPoints.map((f, i) => `${i === 0 ? "M" : "L"} ${f.x} ${f.yUpper}`).join(" ")}
+                                            fill="none"
+                                            stroke="var(--gold)"
+                                            strokeWidth="1"
+                                            opacity="0.5"
+                                        />
+                                        <path
+                                            d={chartMath.forecastPoints.map((f, i) => `${i === 0 ? "M" : "L"} ${f.x} ${f.yLower}`).join(" ")}
+                                            fill="none"
+                                            stroke="var(--gold)"
+                                            strokeWidth="1"
+                                            opacity="0.5"
+                                        />
+                                    </>
                                 )}
+
+                                {/* Interactive Hover Crosshair & Node Highlight */}
+                                {hoveredPoint && (
+                                    <g>
+                                        <line x1={hoveredPoint.x} y1="0" x2={hoveredPoint.x} y2="360" stroke="var(--ink-2)" strokeWidth="1" strokeDasharray="2 2" />
+                                        <line x1="40" y1={hoveredPoint.y} x2="960" y2={hoveredPoint.y} stroke="var(--ink-2)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                        <circle cx={hoveredPoint.x} cy={hoveredPoint.y} r="6" fill="var(--gold)" stroke="var(--bg)" strokeWidth="2" className="animate-pulse" />
+                                    </g>
+                                )}
+
+                                {/* X-Axis Date Labels */}
+                                <text x="50" y="380" fill="var(--ink-2)" fontSize="10">
+                                    {chartMath.historyPoints[0]?.date}
+                                </text>
+                                <text x="470" y="380" fill="var(--gold)" fontWeight="bold" fontSize="10">
+                                    2026-08-04 (t=0)
+                                </text>
+                                <text x="910" y="380" fill="var(--ink-2)" fontSize="10">
+                                    {chartMath.forecastPoints[chartMath.forecastPoints.length - 1]?.date}
+                                </text>
                             </svg>
 
-                            {/* Section 3.3: Interactive Tooltip Hover Overlay */}
-                            <div className="absolute top-2 left-2 p-3 border font-mono text-xs space-y-1 shadow-md" style={{ background: "var(--bg)", borderColor: "var(--border)" }}>
-                                <div className="font-bold text-[var(--gold)]">Active Node Inspection</div>
-                                <div>Observed: ₹{fmt(seriesData.currentObserved)}</div>
-                                <div>Forecast Target: ₹{fmt(targetFc?.predicted)}</div>
-                                <div>Lower Bound: ₹{fmt(targetFc?.lower)} | Upper Bound: ₹{fmt(targetFc?.upper)}</div>
-                                <div>Daily Arrivals: 4,850 Tonnes</div>
-                                <div>Active Model: {config.championModel}</div>
+                            {/* Section 3.3: Dynamic Interactive Inspection Card Tooltip */}
+                            <div
+                                className="absolute p-3 border font-mono text-xs space-y-1.5 shadow-xl transition-all pointer-events-none rounded"
+                                style={{
+                                    top: "16px",
+                                    right: hoveredPoint && hoveredPoint.x > 500 ? "auto" : "16px",
+                                    left: hoveredPoint && hoveredPoint.x > 500 ? "16px" : "auto",
+                                    background: "var(--surface)",
+                                    borderColor: "var(--border)",
+                                    color: "var(--ink)",
+                                    minWidth: "240px",
+                                }}
+                            >
+                                <div className="flex items-center justify-between border-b pb-1 font-bold text-[var(--gold)]" style={{ borderColor: "var(--border)" }}>
+                                    <span>{hoveredPoint ? hoveredPoint.date : "Current Target Summary"}</span>
+                                    <span className="text-[10px] uppercase px-1.5 py-0.5 border" style={{ borderColor: "var(--border)" }}>
+                                        {hoveredPoint ? (hoveredPoint.type === "forecast" ? "AI FORECAST" : "OBSERVED") : "LIVE SUMMARY"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-[var(--ink-2)]">{hoveredPoint?.type === "forecast" ? "Predicted Price:" : "Observed Price:"}</span>
+                                    <span className="font-bold text-[var(--gold)]">
+                                        ₹{fmt(hoveredPoint ? (hoveredPoint.actual || hoveredPoint.predicted) : seriesData.currentObserved)} {unitLabel}
+                                    </span>
+                                </div>
+                                {hoveredPoint?.type === "forecast" && (
+                                    <div className="flex justify-between text-[11px]">
+                                        <span className="text-[var(--ink-2)]">Confidence Band:</span>
+                                        <span>₹{fmt(hoveredPoint.lower)} – ₹{fmt(hoveredPoint.upper)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-[var(--ink-2)]">Daily Arrivals:</span>
+                                    <span>{(hoveredPoint ? hoveredPoint.arrival : 4850).toLocaleString()} Tonnes</span>
+                                </div>
+                                <div className="flex justify-between text-[11px]">
+                                    <span className="text-[var(--ink-2)]">Active Champion Model:</span>
+                                    <span className="font-bold text-[var(--brand)]">{config.championModel}</span>
+                                </div>
                             </div>
                         </div>
                     </section>

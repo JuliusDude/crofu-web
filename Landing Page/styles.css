@@ -566,3 +566,33 @@ body {
     .crop-cards-grid { grid-template-columns: 1fr; }
     .pipeline-cards-grid { grid-template-columns: 1fr; }
 }
+
+/* Custom Minimalist Theme-Aware Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--bg);
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ink-2);
+}
+
+::-webkit-scrollbar-corner {
+    background: var(--bg);
+}
+
