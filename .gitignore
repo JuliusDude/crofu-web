@@ -21,3 +21,6 @@ Thumbs.db
 .env.local
 .env.development.local
 .env.production.local
+
+# Local Tools
+admin_dashboard.py
