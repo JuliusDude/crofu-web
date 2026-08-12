@@ -307,3 +307,101 @@ html, body, * {
     scrollbar-color: var(--border) transparent;
 }
 
+/* ==========================================================================
+   Mobile Responsiveness (max-width: 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+    /* Padding & Margins */
+    .px-6, .px-4, .md\:px-10, .md\:px-8 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    .pt-32, .md\:pt-40 {
+        padding-top: 4.5rem !important;
+    }
+    .pb-16, .md\:pb-24 {
+        padding-bottom: 3rem !important;
+    }
+    .py-24, .md\:py-32 {
+        padding-top: 4rem !important;
+        padding-bottom: 4rem !important;
+    }
+    .p-6, .md\:p-8 {
+        padding: 1.25rem !important;
+    }
+    .p-5 {
+        padding: 1rem !important;
+    }
+    .p-4, .md\:p-6 {
+        padding: 0.875rem !important;
+    }
+    .gap-8, .gap-12 {
+        gap: 1.5rem !important;
+    }
+    .gap-6 {
+        gap: 1.25rem !important;
+    }
+    .mb-10, .mb-14, .mb-16 {
+        margin-bottom: 1.5rem !important;
+    }
+
+    /* Text Sizes */
+    .text-\[clamp\(64px\,9vw\,132px\)\] {
+        font-size: 3.5rem !important;
+    }
+    .text-\[clamp\(28px\,3\.2vw\,42px\)\] {
+        font-size: 1.75rem !important;
+    }
+    .text-\[clamp\(36px\,5vw\,68px\)\] {
+        font-size: 2.25rem !important;
+    }
+    .text-\[clamp\(40px\,5vw\,64px\)\] {
+        font-size: 2.5rem !important;
+    }
+    .text-\[42px\] {
+        font-size: 32px !important;
+    }
+    .text-3xl {
+        font-size: 1.75rem !important;
+    }
+
+    /* Flex Directions & Layout */
+    .flex-col {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Ensure Header flex wraps elegantly */
+    header .flex-wrap {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem !important;
+    }
+    header .flex-wrap .flex {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    /* Make buttons full width on small screens for better UX */
+    .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Dashboard KPI adjustments */
+    .grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Ensure main chart section collapses well */
+    .justify-between {
+        justify-content: flex-start !important;
+        gap: 1rem !important;
+    }
+
+    /* Hide large parallax blobs on mobile for performance and space */
+    .parallax-blob {
+        display: none !important;
+    }
+}
+
