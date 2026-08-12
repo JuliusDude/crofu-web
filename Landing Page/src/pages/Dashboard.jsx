@@ -215,6 +215,12 @@ export default function Dashboard({ onNavigate }) {
     const [sortKey, setSortKey] = useState("modal");
     const [sortAsc, setSortAsc] = useState(false);
 
+    // Main Chart Table State & Filter
+    const [chartTableSearch, setChartTableSearch] = useState("");
+    const [chartTableSort, setChartTableSort] = useState("date");
+    const [chartTableSortAsc, setChartTableSortAsc] = useState(false);
+    const [chartTableFilter, setChartTableFilter] = useState("all"); // all | observed | forecast
+
     // Alert Config State
     const [alertUpper, setAlertUpper] = useState(2600);
     const [alertLower, setAlertLower] = useState(2100);
@@ -291,6 +297,81 @@ export default function Dashboard({ onNavigate }) {
 
         return { minVal, maxVal, getY, historyPoints, t0Point, forecastPoints };
     }, [seriesData, activeForecast, scaleType]);
+
+    // Dynamic Chart Data Table Computation (Dates, Price, Change)
+    const chartTableData = useMemo(() => {
+        const hist = seriesData.history.map((h) => ({
+            date: h.date,
+            price: h.actual,
+            type: "Observed",
+        }));
+
+        const present = {
+            date: "2026-08-04",
+            price: seriesData.currentObserved,
+            type: "Observed",
+            isT0: true,
+        };
+
+        const fc = activeForecast.map((f) => ({
+            date: f.date,
+            price: f.predicted,
+            type: "Forecast",
+        }));
+
+        const combined = [...hist, present, ...fc];
+
+        const processed = combined.map((item, idx) => {
+            if (idx === 0) {
+                return {
+                    ...item,
+                    changeVal: 0,
+                    changePct: 0,
+                    isPositive: true,
+                    isZero: true,
+                };
+            }
+            const prevPrice = combined[idx - 1].price;
+            const diff = item.price - prevPrice;
+            const pct = prevPrice !== 0 ? (diff / prevPrice) * 100 : 0;
+            return {
+                ...item,
+                changeVal: diff,
+                changePct: pct,
+                isPositive: diff >= 0,
+                isZero: diff === 0,
+            };
+        });
+
+        let filtered = processed.filter((item) => {
+            if (chartTableFilter === "observed") return item.type === "Observed";
+            if (chartTableFilter === "forecast") return item.type === "Forecast";
+            return true;
+        });
+
+        if (chartTableSearch.trim()) {
+            const query = chartTableSearch.toLowerCase().trim();
+            filtered = filtered.filter((item) => item.date.toLowerCase().includes(query));
+        }
+
+        filtered.sort((a, b) => {
+            let valA, valB;
+            if (chartTableSort === "date") {
+                valA = a.date;
+                valB = b.date;
+                return chartTableSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else if (chartTableSort === "price") {
+                valA = a.price;
+                valB = b.price;
+            } else if (chartTableSort === "change") {
+                valA = a.changeVal;
+                valB = b.changeVal;
+            }
+            return chartTableSortAsc ? valA - valB : valB - valA;
+        });
+
+        return filtered;
+    }, [seriesData, activeForecast, chartTableFilter, chartTableSearch, chartTableSort, chartTableSortAsc]);
 
     // Filter & Sort Mandis
     const filteredMandis = useMemo(() => {
@@ -951,6 +1032,184 @@ export default function Dashboard({ onNavigate }) {
                                     <span className="text-[var(--ink-2)]">Active Champion Model:</span>
                                     <span className="font-bold text-[var(--brand)]">{config.championModel}</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Table Under Chart: Dates, Price, Change */}
+                        <div className="pt-6 border-t space-y-4" style={{ borderColor: "var(--border)" }}>
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="font-serif text-xl font-bold flex items-center gap-2">
+                                        <span>Time-Series Data Breakdown</span>
+                                        <span className="font-mono text-xs font-normal text-[var(--ink-2)] px-2 py-0.5 border" style={{ borderColor: "var(--border)" }}>
+                                            {chartTableData.length} Entries
+                                        </span>
+                                    </h3>
+                                    <p className="font-mono text-xs text-[var(--ink-2)] mt-0.5">
+                                        Historical observed market prices and future projected targets for {config.label}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-3 flex-wrap font-mono text-xs">
+                                    {/* Type Filter */}
+                                    <div className="flex border" style={{ borderColor: "var(--border)" }}>
+                                        {[
+                                            { id: "all", label: "All Data" },
+                                            { id: "observed", label: "Observed" },
+                                            { id: "forecast", label: "Forecast" },
+                                        ].map((tab) => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setChartTableFilter(tab.id)}
+                                                className={`px-2.5 py-1 text-[11px] uppercase tracking-wider transition-colors ${
+                                                    chartTableFilter === tab.id
+                                                        ? "bg-[var(--ink)] text-[var(--bg)] font-bold"
+                                                        : "text-[var(--ink-2)] hover:text-[var(--ink)]"
+                                                }`}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Search by date */}
+                                    <div className="relative">
+                                        <Search size={13} className="absolute left-2.5 top-2 text-[var(--ink-2)]" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search Date (YYYY-MM)..."
+                                            value={chartTableSearch}
+                                            onChange={(e) => setChartTableSearch(e.target.value)}
+                                            className="pl-8 pr-3 py-1 border bg-transparent font-mono text-xs focus:outline-none"
+                                            style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Table Element */}
+                            <div className="overflow-x-auto border max-h-[380px] overflow-y-auto [scrollbar-gutter:stable]" style={{ borderColor: "var(--border)" }}>
+                                <table className="w-full text-left border-collapse font-mono text-xs table-fixed">
+                                    <colgroup>
+                                        <col className="w-[30%]" />
+                                        <col className="w-[24%]" />
+                                        <col className="w-[31%]" />
+                                        <col className="w-[15%]" />
+                                    </colgroup>
+                                    <thead className="sticky top-0 z-10" style={{ background: "var(--surface)" }}>
+                                        <tr className="border-b uppercase text-[var(--ink-2)] h-10" style={{ borderColor: "var(--border)" }}>
+                                            <th
+                                                className="p-3 cursor-pointer select-none hover:text-[var(--ink)] align-middle"
+                                                onClick={() => {
+                                                    if (chartTableSort === "date") setChartTableSortAsc(!chartTableSortAsc);
+                                                    else { setChartTableSort("date"); setChartTableSortAsc(false); }
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span>Dates</span>
+                                                    <span className="text-[10px]">{chartTableSort === "date" ? (chartTableSortAsc ? "↑" : "↓") : "↕"}</span>
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="p-3 cursor-pointer select-none hover:text-[var(--ink)] align-middle"
+                                                onClick={() => {
+                                                    if (chartTableSort === "price") setChartTableSortAsc(!chartTableSortAsc);
+                                                    else { setChartTableSort("price"); setChartTableSortAsc(false); }
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span>Price ({unitLabel})</span>
+                                                    <span className="text-[10px]">{chartTableSort === "price" ? (chartTableSortAsc ? "↑" : "↓") : "↕"}</span>
+                                                </div>
+                                            </th>
+                                            <th
+                                                className="p-3 cursor-pointer select-none hover:text-[var(--ink)] align-middle"
+                                                onClick={() => {
+                                                    if (chartTableSort === "change") setChartTableSortAsc(!chartTableSortAsc);
+                                                    else { setChartTableSort("change"); setChartTableSortAsc(false); }
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span>Change (DoD Δ)</span>
+                                                    <span className="text-[10px]">{chartTableSort === "change" ? (chartTableSortAsc ? "↑" : "↓") : "↕"}</span>
+                                                </div>
+                                            </th>
+                                            <th className="p-3 align-middle">Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {chartTableData.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="p-4 text-center text-[var(--ink-2)]">
+                                                    No matching time-series records found.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            chartTableData.map((row, idx) => {
+                                                const isFc = row.type === "Forecast";
+                                                return (
+                                                    <tr
+                                                        key={row.date + idx}
+                                                        className={`border-b hover:bg-[var(--bg)] transition-colors h-11 ${
+                                                            row.isT0 ? "bg-[var(--gold)]/10 font-semibold" : ""
+                                                        }`}
+                                                        style={{ borderColor: "var(--border)" }}
+                                                    >
+                                                        {/* Dates */}
+                                                        <td className="p-3 font-bold align-middle">
+                                                            <div className="flex items-center gap-2">
+                                                                <Calendar size={13} className="text-[var(--ink-2)] shrink-0" />
+                                                                <span className="truncate">{row.date}</span>
+                                                                {row.isT0 && (
+                                                                    <span className="text-[9px] px-1.5 py-0.5 border border-[var(--gold)] text-[var(--gold)] font-bold uppercase shrink-0">
+                                                                        Present
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+
+                                                        {/* Price */}
+                                                        <td className="p-3 font-bold align-middle" style={{ color: isFc ? "var(--gold)" : "var(--ink)" }}>
+                                                            <div className="truncate">
+                                                                ₹{fmt(row.price)} {unitLabel}
+                                                            </div>
+                                                        </td>
+
+                                                        {/* Change */}
+                                                        <td className="p-3 align-middle">
+                                                            {row.isZero ? (
+                                                                <span className="text-[var(--ink-2)]">-</span>
+                                                            ) : row.isPositive ? (
+                                                                <div className="text-[var(--positive)] font-semibold flex items-center gap-1 truncate">
+                                                                    <TrendingUp size={13} className="shrink-0" />
+                                                                    <span className="truncate">+₹{fmt(row.changeVal)} (+{row.changePct.toFixed(2)}%)</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-[var(--negative)] font-semibold flex items-center gap-1 truncate">
+                                                                    <TrendingDown size={13} className="shrink-0" />
+                                                                    <span className="truncate">-₹{fmt(Math.abs(row.changeVal))} ({row.changePct.toFixed(2)}%)</span>
+                                                                </div>
+                                                            )}
+                                                        </td>
+
+                                                        {/* Type Badge */}
+                                                        <td className="p-3 align-middle">
+                                                            <span
+                                                                className={`inline-block px-2 py-0.5 border text-[10px] uppercase font-bold shrink-0 ${
+                                                                    isFc
+                                                                        ? "border-[var(--gold)] text-[var(--gold)] bg-[var(--gold)]/5"
+                                                                        : "border-[var(--positive)] text-[var(--positive)] bg-[var(--positive)]/5"
+                                                                }`}
+                                                            >
+                                                                {row.type}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </section>

@@ -1,9 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { OBSERVED, FORECAST } from "@/lib/forecastData";
+import { useForecastData } from "@/hooks/useForecastData";
 
-export default function ForecastChart({ animate = true }) {
+export default function ForecastChart({ animate = true, commodity = 'tomato', region = 'national' }) {
     const [hover, setHover] = useState(null);
+    
+    // Fetch data directly from Supabase via our custom hook
+    const { observed, forecast, loading, error } = useForecastData(commodity, region);
 
     const width = 1120;
     const height = 460;
@@ -12,9 +15,6 @@ export default function ForecastChart({ animate = true }) {
     const padT = 40;
     const padB = 56;
 
-    const observed = OBSERVED;
-    const forecast = FORECAST;
-
     const allValues = useMemo(() => {
         const arr = [...observed];
         forecast.forEach((f) => {
@@ -22,6 +22,30 @@ export default function ForecastChart({ animate = true }) {
         });
         return arr;
     }, [observed, forecast]);
+
+    if (loading) {
+        return (
+            <div className="relative w-full h-[460px] flex items-center justify-center text-sm font-mono opacity-50 border border-dashed border-[var(--border)]">
+                Loading live data...
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="relative w-full h-[460px] flex items-center justify-center text-sm text-red-500 font-mono opacity-80 border border-dashed border-red-500/30">
+                Failed to load data: {error}
+            </div>
+        );
+    }
+
+    if (allValues.length === 0) {
+        return (
+            <div className="relative w-full h-[460px] flex items-center justify-center text-sm font-mono opacity-50 border border-dashed border-[var(--border)]">
+                Awaiting Data
+            </div>
+        );
+    }
 
     const yMin = Math.floor(Math.min(...allValues) / 100) * 100 - 100;
     const yMax = Math.ceil(Math.max(...allValues) / 100) * 100 + 100;

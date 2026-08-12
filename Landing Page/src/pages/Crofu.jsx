@@ -43,6 +43,18 @@ function LineMask({ children, delay = 0 }) {
 
 /* ---------- Nav ---------- */
 function Nav({ onToggle, isDark, onNavigate }) {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    const handleMobileNavClick = (sectionHash) => {
+        setMobileMenuOpen(false);
+        if (sectionHash) {
+            setTimeout(() => {
+                const elem = document.querySelector(sectionHash);
+                if (elem) elem.scrollIntoView({ behavior: "smooth" });
+            }, 100);
+        }
+    };
+
     return (
         <header
             className="fixed top-0 inset-x-0 z-40"
@@ -54,13 +66,18 @@ function Nav({ onToggle, isDark, onNavigate }) {
             <div className="max-w-[1400px] mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
                 <a
                     href="#top"
-                    onClick={(e) => scrollToSection(e, "#top")}
+                    onClick={(e) => {
+                        scrollToSection(e, "#top");
+                        setMobileMenuOpen(false);
+                    }}
                     className="font-serif text-[22px] tracking-tight"
                     style={{ color: "var(--ink)", fontWeight: 600 }}
                     data-testid="brand-logo"
                 >
                     CroFu<span style={{ color: "var(--gold)" }}>.</span>
                 </a>
+
+                {/* Desktop Nav */}
                 <nav className="hidden md:flex items-center gap-8 text-sm">
                     <a
                         href="#coverage"
@@ -110,16 +127,92 @@ function Nav({ onToggle, isDark, onNavigate }) {
                         Android
                     </a>
                 </nav>
-                <button
-                    onClick={onToggle}
-                    className="text-[11px] font-mono tracking-[0.14em] uppercase px-3 py-2 border"
-                    style={{ borderColor: "var(--border)" }}
-                    data-testid="theme-toggle"
-                    aria-label="Toggle color mode"
-                >
-                    {isDark ? "◐ Light" : "◑ Dark"}
-                </button>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onToggle}
+                        className="text-[11px] font-mono tracking-[0.14em] uppercase px-3 py-2 border"
+                        style={{ borderColor: "var(--border)" }}
+                        data-testid="theme-toggle"
+                        aria-label="Toggle color mode"
+                    >
+                        {isDark ? "◐ Light" : "◑ Dark"}
+                    </button>
+
+                    {/* Mobile Hamburger Button */}
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="md:hidden px-3 py-2 border text-[11px] font-mono tracking-[0.14em] uppercase flex items-center justify-center"
+                        style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                        aria-label="Toggle mobile menu"
+                        data-testid="mobile-menu-toggle"
+                    >
+                        {mobileMenuOpen ? "✕ Close" : "☰ Menu"}
+                    </button>
+                </div>
             </div>
+
+            {/* Mobile Dropdown Drawer */}
+            {mobileMenuOpen && (
+                <div
+                    className="md:hidden border-b px-6 py-6 flex flex-col gap-4 font-mono text-sm shadow-2xl backdrop-blur-xl"
+                    style={{
+                        backgroundColor: "var(--surface)",
+                        borderColor: "var(--border)",
+                        color: "var(--ink)"
+                    }}
+                >
+                    <a
+                        href="#coverage"
+                        onClick={() => handleMobileNavClick("#coverage")}
+                        className="py-2 border-b text-base font-serif"
+                        style={{ borderColor: "var(--border)" }}
+                    >
+                        Coverage
+                    </a>
+                    <button
+                        onClick={() => {
+                            setMobileMenuOpen(false);
+                            onNavigate && onNavigate("dashboard");
+                        }}
+                        className="py-2 border-b text-left font-serif text-base font-bold text-[var(--gold)]"
+                        style={{ borderColor: "var(--border)" }}
+                    >
+                        Dashboard
+                    </button>
+                    <a
+                        href="#pipeline"
+                        onClick={() => handleMobileNavClick("#pipeline")}
+                        className="py-2 border-b text-base font-serif"
+                        style={{ borderColor: "var(--border)" }}
+                    >
+                        Method
+                    </a>
+                    <a
+                        href="#accuracy"
+                        onClick={() => handleMobileNavClick("#accuracy")}
+                        className="py-2 border-b text-base font-serif"
+                        style={{ borderColor: "var(--border)" }}
+                    >
+                        Accuracy
+                    </a>
+                    <a
+                        href="#api"
+                        onClick={() => handleMobileNavClick("#api")}
+                        className="py-2 border-b text-base font-serif"
+                        style={{ borderColor: "var(--border)" }}
+                    >
+                        API
+                    </a>
+                    <a
+                        href="#app"
+                        onClick={() => handleMobileNavClick("#app")}
+                        className="py-2 text-base font-serif"
+                    >
+                        Android
+                    </a>
+                </div>
+            )}
         </header>
     );
 }
@@ -868,9 +961,10 @@ function Accuracy() {
                 </Reveal>
 
                 <div
-                    className="border"
+                    className="border overflow-x-auto"
                     style={{ borderColor: "var(--border)" }}
                 >
+                    <div className="min-w-[750px]">
                     <div
                         className="grid grid-cols-12 gap-4 px-6 py-4 font-mono text-[10.5px] tabular tracking-[0.14em] uppercase border-b"
                         style={{
@@ -934,6 +1028,7 @@ function Accuracy() {
                             </div>
                         </Reveal>
                     ))}
+                    </div>
                 </div>
             </div>
         </section>

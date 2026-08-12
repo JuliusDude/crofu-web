@@ -570,7 +570,7 @@ body {
 /* Custom Minimalist Theme-Aware Scrollbar */
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--border) var(--bg);
+    scrollbar-color: var(--border) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -579,20 +579,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg);
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
     background: var(--border);
     border-radius: 9999px;
-    transition: background 0.2s ease;
+    transition: background-color 0.2s ease-in-out;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--ink-2);
+    background: var(--brand);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
 }
 
 ::-webkit-scrollbar-corner {
-    background: var(--bg);
+    background: transparent;
 }
+
 
