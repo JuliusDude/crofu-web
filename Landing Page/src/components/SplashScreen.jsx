@@ -68,7 +68,7 @@ const SplashScreen = forwardRef(({ showText = true, onPrepareUnderneath, onCompl
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.9, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 select-none overflow-hidden"
+            className="fixed top-0 left-0 w-full h-[100dvh] z-[100] flex flex-col items-center justify-center p-8 select-none overflow-hidden"
             style={{
                 background: "var(--bg, #0f1613)",
                 color: "var(--ink, #ece7d9)",

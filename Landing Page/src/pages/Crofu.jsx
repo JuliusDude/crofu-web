@@ -351,7 +351,7 @@ function Hero() {
                                 className="font-serif tabular leading-[0.9] mb-3"
                                 style={{
                                     fontWeight: 600,
-                                    fontSize: "clamp(64px, 9vw, 132px)",
+                                    fontSize: "clamp(42px, 9vw, 132px)",
                                     color: "var(--gold)",
                                     letterSpacing: "-0.02em",
                                 }}
@@ -1461,7 +1461,7 @@ export default function Crofu({ onNavigate }) {
     }, []);
 
     return (
-        <main style={{ background: "var(--bg)" }} data-testid="crofu-page">
+        <main className="w-full max-w-[100vw] overflow-x-hidden" style={{ background: "var(--bg)" }} data-testid="crofu-page">
             <Nav
                 onToggle={() => {
                     toggleTheme();

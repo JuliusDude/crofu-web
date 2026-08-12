@@ -365,33 +365,12 @@ html, body, * {
         font-size: 1.75rem !important;
     }
 
-    /* Flex Directions & Layout */
-    /* Removed aggressive .flex-col display: flex !important as it breaks hidden elements */
-    
-    /* Ensure Header flex wraps elegantly */
-    header .flex-wrap {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 1rem !important;
-    }
-    header .flex-wrap .flex {
-        flex-direction: row !important;
-        flex-wrap: wrap;
-    }
 
     /* Make buttons full width on small screens for better UX */
     .btn-primary {
         width: 100%;
         justify-content: center;
     }
-    
-    /* Dashboard KPI adjustments */
-    .grid-cols-2 {
-        grid-template-columns: 1fr !important;
-    }
-    
-    /* Ensure main chart section collapses well */
-    /* Removed aggressive justify-between override */
 
     /* Hide large parallax blobs on mobile for performance and space */
     .parallax-blob {
