@@ -1,0 +1,30 @@
+name: Weekly ML Predictor
+
+on:
+  schedule:
+    # Runs at 02:00 UTC every Sunday (which is 7:30 AM IST on Sunday)
+    - cron: '0 2 * * 0'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+
+jobs:
+  train-and-predict:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: pip install -r workers/requirements.txt
+        
+      - name: Run ML Predictions
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python workers/weekly_predictor.py
