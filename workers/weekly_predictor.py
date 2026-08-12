@@ -2,19 +2,17 @@ import os
 import datetime
 import pandas as pd
 import numpy as np
+import joblib
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
 # Machine Learning Libraries
 from statsmodels.tsa.arima.model import ARIMA
 import xgboost as xgb
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 import warnings
 
-# Suppress statsmodels warnings for cleaner action logs
 warnings.filterwarnings("ignore")
-
-# Load environment variables
 load_dotenv()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -28,7 +26,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 CROPS = ["tomato", "onion", "potato", "brinjal"]
 REGIONS = ["national", "tn"]
 
-# Define which model to use for which crop (matching UI metadata)
 MODEL_MAPPING = {
     "tomato": "xgboost",
     "onion": "arima",
@@ -36,118 +33,132 @@ MODEL_MAPPING = {
     "brinjal": "xgboost"
 }
 
+def evaluate_metrics(y_true, y_pred):
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    mape = mean_absolute_percentage_error(y_true, y_pred) * 100
+    return mse, rmse, mape
+
 def train_arima(series, steps=28):
-    """Trains an ARIMA model and forecasts `steps` ahead."""
+    # Train-test split for metrics evaluation (last 14 days as validation)
+    train, val = series[:-14], series[-14:]
+    
     try:
-        # Simple auto-regressive model configuration (p=5, d=1, q=0) for daily data
-        model = ARIMA(series, order=(5, 1, 0))
-        model_fit = model.fit()
+        # Evaluate model on val set first to get metrics
+        eval_model = ARIMA(train, order=(5, 1, 0)).fit()
+        val_preds = eval_model.forecast(steps=14)
+        mse, rmse, mape = evaluate_metrics(val, val_preds)
         
-        # We need confidence intervals too (lo, hi). Statsmodels provides this via get_forecast()
-        forecast_obj = model_fit.get_forecast(steps=steps)
-        conf_int = forecast_obj.conf_int(alpha=0.05) # 95% confidence interval
+        # Now train on full data for future prediction
+        model = ARIMA(series, order=(5, 1, 0)).fit()
+        forecast_obj = model.get_forecast(steps=steps)
+        conf_int = forecast_obj.conf_int(alpha=0.05)
         
-        return forecast_obj.predicted_mean.values, conf_int.iloc[:, 0].values, conf_int.iloc[:, 1].values
+        return forecast_obj.predicted_mean.values, conf_int.iloc[:, 0].values, conf_int.iloc[:, 1].values, (mse, rmse, mape)
     except Exception as e:
         print(f"ARIMA training failed: {e}")
-        return None, None, None
+        return None, None, None, None
 
-def train_xgboost(series, steps=28):
-    """Trains an XGBoost model using lagged features and forecasts `steps` ahead."""
+def train_xgboost(series, steps=28, commodity=None, region=None):
     try:
-        # Create lag features
+        # Check if pre-trained TNAU model exists
+        model_dir = f"models/{region.capitalize()}/{commodity}/XGBoost/models/"
+        model_path = os.path.join(model_dir, "best_xgb.pkl")
+        
         df = pd.DataFrame({'price': series})
-        for i in range(1, 8): # Use past 7 days as features
-            df[f'lag_{i}'] = df['price'].shift(i)
-            
+        for i in range(1, 8): df[f'lag_{i}'] = df['price'].shift(i)
         df = df.dropna()
-        if len(df) < 10:
-            raise ValueError("Not enough data to train XGBoost (need at least 10 days)")
+        
+        if len(df) < 20:
+            raise ValueError("Not enough data to train/evaluate XGBoost")
             
         X = df.drop('price', axis=1)
         y = df['price']
         
-        # Train model
-        model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=50, max_depth=3)
+        # Validation split for metrics
+        X_train, X_val = X.iloc[:-14], X.iloc[-14:]
+        y_train, y_val = y.iloc[:-14], y.iloc[-14:]
+        
+        model = None
+        if os.path.exists(model_path):
+            print(f"Loading pre-trained model from {model_path}...")
+            try:
+                model = joblib.load(model_path)
+                # Attempt to use it. If features mismatch, it will throw an exception
+                model.predict(X_val)
+            except Exception as e:
+                print(f"Pre-trained model feature mismatch, retraining... ({e})")
+                model = None
+                
+        if model is None:
+            model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=50, max_depth=3)
+            
+        # Fit/Update model on full data
         model.fit(X, y)
         
-        # Forecast iteratively
+        # Get evaluation metrics on the validation slice
+        val_preds = model.predict(X_val)
+        mse, rmse, mape = evaluate_metrics(y_val, val_preds)
+        
         predictions = []
         last_features = X.iloc[-1].values.tolist()
         
-        # We need an estimate of variance for the confidence interval.
-        # Calculate the RMSE on the training set.
         train_preds = model.predict(X)
-        rmse = np.sqrt(mean_squared_error(y, train_preds))
+        overall_rmse = np.sqrt(mean_squared_error(y, train_preds))
         
         for _ in range(steps):
-            # Predict next day
             pred = model.predict(np.array([last_features]))[0]
             predictions.append(pred)
-            
-            # Update lag features for next step (shift right, insert new pred at start)
             last_features = [pred] + last_features[:-1]
             
         preds = np.array(predictions)
-        
-        # Construct simple confidence bounds based on training RMSE
-        # Expanding variance as we go further into the future (uncertainty grows)
-        expanding_variance = rmse * np.sqrt(np.arange(1, steps + 1))
+        expanding_variance = overall_rmse * np.sqrt(np.arange(1, steps + 1))
         lo = preds - (1.96 * expanding_variance)
         hi = preds + (1.96 * expanding_variance)
         
-        return preds, lo, hi
+        return preds, lo, hi, (mse, rmse, mape)
     except Exception as e:
         print(f"XGBoost training failed: {e}")
-        return None, None, None
+        return None, None, None, None
 
 def run_ml_forecast(commodity: str, region: str, historical_data: list):
-    """
-    Trains a model on historical_data and predicts the next 28 days.
-    """
     print(f"Running ML models for {commodity} in {region}...")
     
-    if not historical_data:
-        print("No historical data found. Skipping.")
-        return []
+    if not historical_data: return [], None
         
-    # Process historical data into a pandas Series
-    # Supabase data is ordered newest first, we reverse it to chronological order
     df = pd.DataFrame(historical_data)
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values('date')
     series = df['price'].values
     
     steps = 28
+    metrics = None
     
-    # Cold start fallback: If we have less than 14 days of data, use a naive forecast
-    if len(series) < 14:
-        print(f"Cold start fallback triggered for {commodity}. Only {len(series)} days available.")
+    if len(series) < 20:
+        print(f"Cold start fallback triggered for {commodity}.")
         last_price = series[-1]
         preds = np.full(steps, last_price)
-        lo = preds - 100
-        hi = preds + 100
+        lo, hi = preds - 100, preds + 100
+        metrics = (0.0, 0.0, 0.0) # Dummy metrics for naive fallback
     else:
         model_type = MODEL_MAPPING.get(commodity, "arima")
         
         if model_type == "arima":
-            preds, lo, hi = train_arima(series, steps)
+            preds, lo, hi, metrics = train_arima(series, steps)
         else:
-            preds, lo, hi = train_xgboost(series, steps)
+            preds, lo, hi, metrics = train_xgboost(series, steps, commodity, region)
             
-        # Fallback if model training failed entirely
         if preds is None:
             last_price = series[-1]
             preds = np.full(steps, last_price)
-            lo = preds - 100
-            hi = preds + 100
+            lo, hi = preds - 100, preds + 100
+            metrics = (0.0, 0.0, 0.0)
 
     forecast = []
     today = datetime.datetime.now()
     
     for i in range(steps):
         target_date = (today + datetime.timedelta(days=i+1)).strftime("%Y-%m-%d")
-        
         forecast.append({
             "commodity": commodity,
             "region": region,
@@ -156,43 +167,53 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
             "lo": round(float(lo[i]), 2),
             "hi": round(float(hi[i]), 2)
         })
-        
-        # Don't let bounds cross each other weirdly due to volatility
         if forecast[-1]['lo'] > forecast[-1]['p']: forecast[-1]['lo'] = forecast[-1]['p']
         if forecast[-1]['hi'] < forecast[-1]['p']: forecast[-1]['hi'] = forecast[-1]['p']
         
-    return forecast
+    return forecast, metrics
 
 def main():
-    print("Starting Weekly ML Prediction Run...")
+    print("Starting Weekly ML Prediction Run with Evaluation...")
+    today = datetime.datetime.now().strftime("%Y-%m-%d")
     
     for region in REGIONS:
         for crop in CROPS:
             try:
-                # 1. Fetch historical data to train the model
-                # We fetch up to 90 days to provide a decent training window
                 res = supabase.table('historical_prices')\
                     .select('*')\
                     .eq('commodity', crop)\
                     .eq('region', region)\
                     .order('date', desc=True)\
-                    .limit(90)\
+                    .limit(365)\
                     .execute()
                 
                 historical_data = res.data
                 
-                # 2. Run the ML forecast for the next 28 days
-                forecast_data = run_ml_forecast(crop, region, historical_data)
+                # 2. Run the ML forecast AND get evaluation metrics
+                forecast_data, metrics = run_ml_forecast(crop, region, historical_data)
                 
                 if forecast_data:
-                    # 3. Upsert predictions into Supabase
-                    # The UNIQUE(commodity, region, target_date) constraint ensures
-                    # that overlapping days are gracefully updated.
                     supabase.table('predictions').upsert(forecast_data).execute()
-                    print(f"Successfully upserted {len(forecast_data)} days of predictions for [{region.upper()}] {crop.capitalize()}.")
+                    print(f"Upserted 28 days of predictions for [{region.upper()}] {crop.capitalize()}.")
+                    
+                if metrics and metrics[0] != 0.0:
+                    mse, rmse, mape = metrics
+                    model_type = MODEL_MAPPING.get(crop, "arima")
+                    
+                    metric_data = {
+                        "commodity": crop,
+                        "region": region,
+                        "training_date": today,
+                        "model_type": model_type,
+                        "mse": float(mse),
+                        "rmse": float(rmse),
+                        "mape": float(mape)
+                    }
+                    supabase.table('model_metrics').upsert([metric_data]).execute()
+                    print(f"Logged evaluation metrics for {crop} (RMSE: {rmse:.2f})")
                 
             except Exception as e:
-                print(f"Failed to run predictions for {crop} in {region}: {str(e)}")
+                print(f"Failed to process {crop} in {region}: {str(e)}")
 
     print("Weekly ML Prediction Run completed successfully.")
 
