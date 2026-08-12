@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import Crofu from "./pages/Crofu";
 import Dashboard from "./pages/Dashboard";
@@ -97,14 +97,17 @@ function App() {
     }
   };
 
-  const handlePrepareUnderneath = () => {
-    setRouteInfo({ page: "dashboard", path: "/dashboard" });
-  };
+  const handlePrepareUnderneath = useCallback(() => {
+    setRouteInfo(prev => {
+      if (prev.page === "dashboard") return prev;
+      return { page: "dashboard", path: "/dashboard" };
+    });
+  }, []);
 
-  const handleSplashComplete = () => {
+  const handleSplashComplete = useCallback(() => {
     setIsSplashing(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-[var(--bg,#0f1613)]">
