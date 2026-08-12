@@ -366,10 +366,7 @@ html, body, * {
     }
 
     /* Flex Directions & Layout */
-    .flex-col {
-        display: flex !important;
-        flex-direction: column !important;
-    }
+    /* Removed aggressive .flex-col display: flex !important as it breaks hidden elements */
     
     /* Ensure Header flex wraps elegantly */
     header .flex-wrap {
@@ -394,10 +391,7 @@ html, body, * {
     }
     
     /* Ensure main chart section collapses well */
-    .justify-between {
-        justify-content: flex-start !important;
-        gap: 1rem !important;
-    }
+    /* Removed aggressive justify-between override */
 
     /* Hide large parallax blobs on mobile for performance and space */
     .parallax-blob {

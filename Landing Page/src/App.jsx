@@ -109,10 +109,14 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const handleInitialSplashComplete = useCallback(() => {
+    setIsInitialSplash(false);
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-[var(--bg,#0f1613)]">
       {/* Active Page Component - Pre-rendered underneath splash overlay */}
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {routeInfo.page === "dashboard" ? (
           <Dashboard key="dashboard" onNavigate={triggerNavigation} />
         ) : routeInfo.page === "error" ? (
@@ -132,7 +136,7 @@ function App() {
           <SplashScreen
             key="initial-splash"
             showText={false}
-            onComplete={() => setIsInitialSplash(false)}
+            onComplete={handleInitialSplashComplete}
           />
         )}
         {isSplashing && (

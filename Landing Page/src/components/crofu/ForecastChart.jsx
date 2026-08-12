@@ -25,8 +25,43 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
 
     if (loading) {
         return (
-            <div className="relative w-full h-[460px] flex items-center justify-center text-sm font-mono opacity-50 border border-dashed border-[var(--border)]">
-                Loading live data...
+            <div className="relative w-full h-[460px] flex flex-col justify-end p-8 border border-[var(--border)] overflow-hidden" style={{ background: "var(--surface)" }}>
+                {/* Shimmer overlay */}
+                <div className="absolute inset-0 z-10 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/5 before:to-transparent pointer-events-none" />
+                
+                {/* Grid lines skeleton */}
+                <div className="absolute inset-0 flex flex-col justify-between pt-10 pb-14 px-[74px]">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="w-full h-px bg-[var(--border)] opacity-40" />
+                    ))}
+                </div>
+
+                {/* Chart path skeleton (simulated with blocks) */}
+                <div className="relative z-0 flex items-end h-[70%] gap-1 px-[74px] opacity-20">
+                    {[...Array(30)].map((_, i) => (
+                        <div 
+                            key={`obs-${i}`} 
+                            className="w-full bg-[var(--ink-2)] rounded-t-sm" 
+                            style={{ height: `${30 + Math.sin(i * 0.4) * 20 + Math.random() * 10}%` }} 
+                        />
+                    ))}
+                    {/* Divider */}
+                    <div className="w-[2px] h-full bg-[var(--ink-2)] mx-2 opacity-50" />
+                    {[...Array(14)].map((_, i) => (
+                        <div 
+                            key={`fc-${i}`} 
+                            className="w-full bg-[var(--gold)] rounded-t-sm" 
+                            style={{ height: `${50 + Math.cos(i * 0.5) * 30}%`, opacity: 0.7 }} 
+                        />
+                    ))}
+                </div>
+
+                {/* Axis Labels Skeleton */}
+                <div className="absolute bottom-6 left-[74px] right-[24px] flex justify-between px-1">
+                    <div className="h-2 w-20 bg-[var(--border)] rounded" />
+                    <div className="h-2 w-12 bg-[var(--border)] rounded" />
+                    <div className="h-2 w-16 bg-[var(--border)] rounded" />
+                </div>
             </div>
         );
     }
@@ -263,52 +298,58 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 </g>
 
                 {/* Forecast line */}
-                <g clipPath="url(#bandClip)">
-                    <path
-                        d={forecastPath}
-                        fill="none"
-                        stroke="var(--gold)"
-                        strokeWidth="1.8"
-                        strokeDasharray="5 4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </g>
+                {forecast.length > 0 && (
+                    <g clipPath="url(#bandClip)">
+                        <path
+                            d={forecastPath}
+                            fill="none"
+                            stroke="var(--gold)"
+                            strokeWidth="1.8"
+                            strokeDasharray="5 4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </g>
+                )}
 
                 {/* End marker on forecast peak */}
-                <motion.g
-                    initial={{ opacity: animate ? 0 : 1 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.6, delay: 2.6 }}
-                >
-                    <circle
-                        cx={xAt(totalPoints - 1)}
-                        cy={yAt(forecast[forecast.length - 1].p)}
-                        r="5"
-                        fill="var(--bg)"
-                        stroke="var(--gold)"
-                        strokeWidth="2"
-                    />
-                    <text
-                        x={xAt(totalPoints - 1) - 10}
-                        y={yAt(forecast[forecast.length - 1].p) - 14}
-                        textAnchor="end"
-                        fontSize="11"
-                        fill="var(--gold)"
-                        fontFamily="var(--font-mono)"
-                        fontWeight="500"
+                {forecast.length > 0 && (
+                    <motion.g
+                        initial={{ opacity: animate ? 0 : 1 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.6, delay: 2.6 }}
                     >
-                        ₹2,475.50
-                    </text>
-                </motion.g>
+                        <circle
+                            cx={xAt(totalPoints - 1)}
+                            cy={yAt(forecast[forecast.length - 1].p)}
+                            r="5"
+                            fill="var(--bg)"
+                            stroke="var(--gold)"
+                            strokeWidth="2"
+                        />
+                        <text
+                            x={xAt(totalPoints - 1) - 10}
+                            y={yAt(forecast[forecast.length - 1].p) - 14}
+                            textAnchor="end"
+                            fontSize="11"
+                            fill="var(--gold)"
+                            fontFamily="var(--font-mono)"
+                            fontWeight="500"
+                        >
+                            ₹{forecast[forecast.length - 1].p.toLocaleString("en-IN")}
+                        </text>
+                    </motion.g>
+                )}
 
                 {/* Today marker */}
-                <circle
-                    cx={transitionX}
-                    cy={yAt(observed[lastObsIdx])}
-                    r="4"
-                    fill="var(--brand)"
-                />
+                {observed.length > 0 && (
+                    <circle
+                        cx={transitionX}
+                        cy={yAt(observed[lastObsIdx])}
+                        r="4"
+                        fill="var(--brand)"
+                    />
+                )}
 
                 {/* Hover crosshair */}
                 {hover && (

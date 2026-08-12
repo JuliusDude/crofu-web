@@ -436,21 +436,13 @@ export default function Dashboard({ onNavigate }) {
             >
                 <div className="max-w-[1500px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                        <button
+                        <button 
                             onClick={() => onNavigate && onNavigate("landing")}
-                            className="flex items-center gap-2 px-3 py-1.5 border text-xs font-mono tracking-wider uppercase hover:border-[var(--ink)] transition-colors"
-                            style={{ borderColor: "var(--border)", color: "var(--ink-2)" }}
-                            title="Back to Landing Page"
+                            className="font-serif text-2xl font-bold tracking-tight hover:opacity-80 transition-opacity" 
+                            style={{ color: "var(--ink)" }}
                         >
-                            <ArrowLeft size={14} />
-                            <span>Landing Page</span>
-                        </button>
-                        <span className="font-serif text-2xl font-bold tracking-tight" style={{ color: "var(--ink)" }}>
                             CroFu<span style={{ color: "var(--gold)" }}>.</span>
-                            <span className="ml-2 font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 border text-[var(--ink-2)]" style={{ borderColor: "var(--border)" }}>
-                                Desktop Analytics
-                            </span>
-                        </span>
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-4 text-xs font-mono">

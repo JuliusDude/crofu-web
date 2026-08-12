@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const PHRASES = [
@@ -7,7 +7,7 @@ const PHRASES = [
     "Preparing your workspace...",
 ];
 
-export default function SplashScreen({ showText = true, onPrepareUnderneath, onComplete }) {
+const SplashScreen = forwardRef(({ showText = true, onPrepareUnderneath, onComplete }, ref) => {
     const [phraseIndex, setPhraseIndex] = useState(0);
     const [isExpanding, setIsExpanding] = useState(false);
 
@@ -64,8 +64,8 @@ export default function SplashScreen({ showText = true, onPrepareUnderneath, onC
 
     return (
         <motion.div
+            ref={ref}
             initial={{ opacity: 1 }}
-            animate={{ opacity: isExpanding ? 0 : 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.9, ease: [0.25, 1, 0.5, 1] }}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 select-none overflow-hidden"
@@ -116,4 +116,6 @@ export default function SplashScreen({ showText = true, onPrepareUnderneath, onC
             </div>
         </motion.div>
     );
-}
+});
+
+export default SplashScreen;
