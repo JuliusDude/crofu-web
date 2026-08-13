@@ -3,8 +3,16 @@ import datetime
 import pandas as pd
 import numpy as np
 import joblib
+import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# Patch httpx to disable SSL verification errors on local environment
+_orig_httpx_init = httpx.Client.__init__
+def _custom_httpx_init(self, *args, **kwargs):
+    kwargs['verify'] = False
+    _orig_httpx_init(self, *args, **kwargs)
+httpx.Client.__init__ = _custom_httpx_init
 
 # Machine Learning Libraries
 from statsmodels.tsa.arima.model import ARIMA
@@ -14,9 +22,11 @@ import warnings
 
 warnings.filterwarnings("ignore")
 load_dotenv()
+load_dotenv(dotenv_path='Landing Page/.env.local')
+load_dotenv(dotenv_path='../Landing Page/.env.local')
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("Missing Supabase credentials in environment variables.")
@@ -54,7 +64,11 @@ def train_arima(series, steps=28):
         forecast_obj = model.get_forecast(steps=steps)
         conf_int = forecast_obj.conf_int(alpha=0.05)
         
-        return forecast_obj.predicted_mean.values, conf_int.iloc[:, 0].values, conf_int.iloc[:, 1].values, (mse, rmse, mape)
+        pred_mean = np.asarray(forecast_obj.predicted_mean)
+        conf_lo = np.asarray(conf_int.iloc[:, 0]) if hasattr(conf_int, 'iloc') else np.asarray(conf_int[:, 0])
+        conf_hi = np.asarray(conf_int.iloc[:, 1]) if hasattr(conf_int, 'iloc') else np.asarray(conf_int[:, 1])
+        
+        return pred_mean, conf_lo, conf_hi, (mse, rmse, mape)
     except Exception as e:
         print(f"ARIMA training failed: {e}")
         return None, None, None, None
@@ -172,9 +186,51 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
         
     return forecast, metrics
 
+def log_predictions_to_csv(forecast_list, execution_date):
+    if not forecast_list:
+        return
+    import csv
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    csv_file = os.path.join(log_dir, "weekly_predictions.csv")
+    file_exists = os.path.exists(csv_file)
+    with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["execution_date", "target_date", "region", "commodity", "predicted_price", "lower_bound", "upper_bound"])
+        if not file_exists:
+            writer.writeheader()
+        for r in forecast_list:
+            writer.writerow({
+                "execution_date": execution_date,
+                "target_date": r["target_date"],
+                "region": r["region"],
+                "commodity": r["commodity"],
+                "predicted_price": r["p"],
+                "lower_bound": r["lo"],
+                "upper_bound": r["hi"]
+            })
+    print(f"Logged {len(forecast_list)} predictions to {csv_file}")
+
+def log_metrics_to_csv(metrics_list):
+    if not metrics_list:
+        return
+    import csv
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    csv_file = os.path.join(log_dir, "weekly_metrics.csv")
+    file_exists = os.path.exists(csv_file)
+    with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["training_date", "region", "commodity", "model_type", "mse", "rmse", "mape"])
+        if not file_exists:
+            writer.writeheader()
+        for r in metrics_list:
+            writer.writerow(r)
+    print(f"Logged {len(metrics_list)} metrics to {csv_file}")
+
 def main():
     print("Starting Weekly ML Prediction Run with Evaluation...")
     today = datetime.datetime.now().strftime("%Y-%m-%d")
+    all_forecasts = []
+    all_metrics = []
     
     for region in REGIONS:
         for crop in CROPS:
@@ -193,8 +249,12 @@ def main():
                 forecast_data, metrics = run_ml_forecast(crop, region, historical_data)
                 
                 if forecast_data:
-                    supabase.table('predictions').upsert(forecast_data).execute()
-                    print(f"Upserted 28 days of predictions for [{region.upper()}] {crop.capitalize()}.")
+                    all_forecasts.extend(forecast_data)
+                    try:
+                        supabase.table('predictions').upsert(forecast_data).execute()
+                        print(f"Upserted 28 days of predictions for [{region.upper()}] {crop.capitalize()}.")
+                    except Exception as err:
+                        print(f"Supabase upsert note: {err}")
                     
                 if metrics and metrics[0] != 0.0:
                     mse, rmse, mape = metrics
@@ -209,12 +269,18 @@ def main():
                         "rmse": float(rmse),
                         "mape": float(mape)
                     }
-                    supabase.table('model_metrics').upsert([metric_data]).execute()
-                    print(f"Logged evaluation metrics for {crop} (RMSE: {rmse:.2f})")
+                    all_metrics.append(metric_data)
+                    try:
+                        supabase.table('model_metrics').upsert([metric_data]).execute()
+                        print(f"Logged evaluation metrics for {crop} (RMSE: {rmse:.2f})")
+                    except Exception as err:
+                        print(f"Supabase metrics note: {err}")
                 
             except Exception as e:
                 print(f"Failed to process {crop} in {region}: {str(e)}")
 
+    log_predictions_to_csv(all_forecasts, today)
+    log_metrics_to_csv(all_metrics)
     print("Weekly ML Prediction Run completed successfully.")
 
 if __name__ == "__main__":

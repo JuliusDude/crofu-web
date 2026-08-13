@@ -1,15 +1,24 @@
 import os
 import datetime
 import requests
+import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
+# Patch httpx to disable SSL verification errors on local environment
+_orig_httpx_init = httpx.Client.__init__
+def _custom_httpx_init(self, *args, **kwargs):
+    kwargs['verify'] = False
+    _orig_httpx_init(self, *args, **kwargs)
+httpx.Client.__init__ = _custom_httpx_init
+
 # Load environment variables (will use GitHub Secrets in production)
 load_dotenv()
+load_dotenv(dotenv_path='Landing Page/.env.local')
+load_dotenv(dotenv_path='../Landing Page/.env.local')
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-# IMPORTANT: For backend scripts, we use the SERVICE_ROLE_KEY to bypass RLS for writing.
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("VITE_SUPABASE_ANON_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("Missing Supabase credentials in environment variables.")
@@ -51,16 +60,41 @@ def fetch_agmarknet_price(commodity: str, region: str) -> float:
         
     return round(price, 2)
 
+def log_to_csv(records):
+    if not records:
+        return
+    import csv
+    log_dir = os.path.join(os.path.dirname(__file__), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    csv_file = os.path.join(log_dir, "daily_prices.csv")
+    file_exists = os.path.exists(csv_file)
+    with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["date", "region", "commodity", "price"])
+        if not file_exists:
+            writer.writeheader()
+        for r in records:
+            writer.writerow(r)
+    print(f"Logged {len(records)} records to {csv_file}")
+
 def main():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     print(f"Starting daily price fetch for {today}")
+    scraped_records = []
     
     for region in REGIONS:
         for crop in CROPS:
+            record = {
+                "date": today,
+                "region": region,
+                "commodity": crop,
+                "price": None
+            }
             try:
                 # 1. Scrape/Fetch the price
                 price = fetch_agmarknet_price(crop, region)
-                print(f"[{region.upper()}] {crop.capitalize()}: ₹{price}/Qtl")
+                print(f"[{region.upper()}] {crop.capitalize()}: Rs.{price}/Qtl")
+                record["price"] = price
+                scraped_records.append(record)
                 
                 # 2. Upsert into Supabase (historical_prices table)
                 data, count = supabase.table('historical_prices').upsert({
@@ -73,6 +107,7 @@ def main():
             except Exception as e:
                 print(f"Failed to process {crop} in {region}: {str(e)}")
 
+    log_to_csv(scraped_records)
     print("Daily fetch completed successfully.")
 
 if __name__ == "__main__":

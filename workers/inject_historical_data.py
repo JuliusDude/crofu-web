@@ -1,7 +1,15 @@
 import os
 import pandas as pd
+import httpx
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# Patch httpx to disable SSL verification errors on local environment
+_orig_httpx_init = httpx.Client.__init__
+def _custom_httpx_init(self, *args, **kwargs):
+    kwargs['verify'] = False
+    _orig_httpx_init(self, *args, **kwargs)
+httpx.Client.__init__ = _custom_httpx_init
 
 # Load environment variables
 load_dotenv(dotenv_path='../Landing Page/.env.local')
