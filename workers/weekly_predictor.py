@@ -36,11 +36,16 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 CROPS = ["tomato", "onion", "potato", "brinjal"]
 REGIONS = ["national", "tn"]
 
-MODEL_MAPPING = {
-    "tomato": "xgboost",
-    "onion": "arima",
-    "potato": "arima",
-    "brinjal": "xgboost"
+# Researched Best Model mapping per (Region, Commodity) pair
+BEST_MODELS = {
+    ("national", "tomato"): "xgboost",
+    ("national", "onion"): "arima",
+    ("national", "potato"): "arima",
+    ("national", "brinjal"): "xgboost",
+    ("tn", "tomato"): "xgboost",
+    ("tn", "onion"): "arima",
+    ("tn", "potato"): "arima",
+    ("tn", "brinjal"): "xgboost",
 }
 
 def evaluate_metrics(y_true, y_pred):
@@ -166,7 +171,7 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
         lo, hi = preds - 100, preds + 100
         metrics = (0.0, 0.0, 0.0) # Dummy metrics for naive fallback
     else:
-        model_type = MODEL_MAPPING.get(commodity, "arima")
+        model_type = BEST_MODELS.get((region.lower(), commodity.lower()), "arima")
         
         if model_type == "arima":
             preds, lo, hi, metrics = train_arima(series, steps, commodity, region)
@@ -268,7 +273,7 @@ def main():
                     
                 if metrics and metrics[0] != 0.0:
                     mse, rmse, mape = metrics
-                    model_type = MODEL_MAPPING.get(crop, "arima")
+                    model_type = BEST_MODELS.get((region.lower(), crop.lower()), "arima")
                     
                     metric_data = {
                         "commodity": crop,
