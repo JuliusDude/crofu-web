@@ -49,7 +49,7 @@ def evaluate_metrics(y_true, y_pred):
     mape = mean_absolute_percentage_error(y_true, y_pred) * 100
     return mse, rmse, mape
 
-def train_arima(series, steps=28):
+def train_arima(series, steps=28, commodity=None, region=None):
     # Train-test split for metrics evaluation (last 14 days as validation)
     train, val = series[:-14], series[-14:]
     
@@ -68,6 +68,13 @@ def train_arima(series, steps=28):
         conf_lo = np.asarray(conf_int.iloc[:, 0]) if hasattr(conf_int, 'iloc') else np.asarray(conf_int[:, 0])
         conf_hi = np.asarray(conf_int.iloc[:, 1]) if hasattr(conf_int, 'iloc') else np.asarray(conf_int[:, 1])
         
+        # Save retrained best model weights
+        if commodity and region:
+            reg_dir = "TN" if region.lower() == "tn" else "National"
+            model_dir = os.path.join(os.path.dirname(__file__), f"models/{reg_dir}/{commodity}/ARIMA/models")
+            os.makedirs(model_dir, exist_ok=True)
+            joblib.dump(model, os.path.join(model_dir, f"best_arima_{region.lower()}.pkl"))
+        
         return pred_mean, conf_lo, conf_hi, (mse, rmse, mape)
     except Exception as e:
         print(f"ARIMA training failed: {e}")
@@ -75,8 +82,9 @@ def train_arima(series, steps=28):
 
 def train_xgboost(series, steps=28, commodity=None, region=None):
     try:
-        # Check if pre-trained TNAU model exists
-        model_dir = f"models/{region.capitalize()}/{commodity}/XGBoost/models/"
+        reg_dir = "TN" if region.lower() == "tn" else "National"
+        xgb_folder = "XGBoost-TN" if region.lower() == "tn" else "XGBoost"
+        model_dir = os.path.join(os.path.dirname(__file__), f"models/{reg_dir}/{commodity}/{xgb_folder}/models")
         model_path = os.path.join(model_dir, "best_xgb.pkl")
         
         df = pd.DataFrame({'price': series})
@@ -95,10 +103,9 @@ def train_xgboost(series, steps=28, commodity=None, region=None):
         
         model = None
         if os.path.exists(model_path):
-            print(f"Loading pre-trained model from {model_path}...")
+            print(f"Loading pre-trained best model from {model_path}...")
             try:
                 model = joblib.load(model_path)
-                # Attempt to use it. If features mismatch, it will throw an exception
                 model.predict(X_val)
             except Exception as e:
                 print(f"Pre-trained model feature mismatch, retraining... ({e})")
@@ -107,8 +114,12 @@ def train_xgboost(series, steps=28, commodity=None, region=None):
         if model is None:
             model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=50, max_depth=3)
             
-        # Fit/Update model on full data
+        # Fit/Retrain model on full data with same parameters
         model.fit(X, y)
+        
+        # Save retrained best model weights
+        os.makedirs(model_dir, exist_ok=True)
+        joblib.dump(model, model_path)
         
         # Get evaluation metrics on the validation slice
         val_preds = model.predict(X_val)
@@ -158,7 +169,7 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
         model_type = MODEL_MAPPING.get(commodity, "arima")
         
         if model_type == "arima":
-            preds, lo, hi, metrics = train_arima(series, steps)
+            preds, lo, hi, metrics = train_arima(series, steps, commodity, region)
         else:
             preds, lo, hi, metrics = train_xgboost(series, steps, commodity, region)
             
@@ -240,7 +251,6 @@ def main():
                     .eq('commodity', crop)\
                     .eq('region', region)\
                     .order('date', desc=True)\
-                    .limit(365)\
                     .execute()
                 
                 historical_data = res.data
