@@ -48,6 +48,15 @@ BEST_MODELS = {
     ("tn", "brinjal"): "xgboost",
 }
 
+def get_version_code(dt=None):
+    if dt is None:
+        dt = datetime.datetime.now()
+    yy = dt.strftime("%y")
+    m = dt.month
+    sundays = sum(1 for day in range(1, dt.day + 1) if dt.replace(day=day).weekday() == 6)
+    w = max(1, sundays) if sundays > 0 else (dt.day - 1) // 7 + 1
+    return f"{yy}.{m}.{w}"
+
 def evaluate_metrics(y_true, y_pred):
     mse = mean_squared_error(y_true, y_pred)
     rmse = np.sqrt(mse)
@@ -186,6 +195,7 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
 
     forecast = []
     today = datetime.datetime.now()
+    version_code = get_version_code(today)
     
     for i in range(steps):
         target_date = (today + datetime.timedelta(days=i+1)).strftime("%Y-%m-%d")
@@ -195,7 +205,8 @@ def run_ml_forecast(commodity: str, region: str, historical_data: list):
             "target_date": target_date,
             "p": round(float(preds[i]), 2),
             "lo": round(float(lo[i]), 2),
-            "hi": round(float(hi[i]), 2)
+            "hi": round(float(hi[i]), 2),
+            "version": version_code
         })
         if forecast[-1]['lo'] > forecast[-1]['p']: forecast[-1]['lo'] = forecast[-1]['p']
         if forecast[-1]['hi'] < forecast[-1]['p']: forecast[-1]['hi'] = forecast[-1]['p']
@@ -211,12 +222,13 @@ def log_predictions_to_csv(forecast_list, execution_date):
     csv_file = os.path.join(log_dir, "weekly_predictions.csv")
     file_exists = os.path.exists(csv_file)
     with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["execution_date", "target_date", "region", "commodity", "predicted_price", "lower_bound", "upper_bound"])
+        writer = csv.DictWriter(f, fieldnames=["execution_date", "version", "target_date", "region", "commodity", "predicted_price", "lower_bound", "upper_bound"])
         if not file_exists:
             writer.writeheader()
         for r in forecast_list:
             writer.writerow({
                 "execution_date": execution_date,
+                "version": r.get("version", ""),
                 "target_date": r["target_date"],
                 "region": r["region"],
                 "commodity": r["commodity"],
@@ -235,7 +247,7 @@ def log_metrics_to_csv(metrics_list):
     csv_file = os.path.join(log_dir, "weekly_metrics.csv")
     file_exists = os.path.exists(csv_file)
     with open(csv_file, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["training_date", "region", "commodity", "model_type", "mse", "rmse", "mape"])
+        writer = csv.DictWriter(f, fieldnames=["training_date", "version", "region", "commodity", "model_type", "mse", "rmse", "mape"])
         if not file_exists:
             writer.writeheader()
         for r in metrics_list:
@@ -245,6 +257,8 @@ def log_metrics_to_csv(metrics_list):
 def main():
     print("Starting Weekly ML Prediction Run with Evaluation...")
     today = datetime.datetime.now().strftime("%Y-%m-%d")
+    version_code = get_version_code()
+    print(f"Model Retraining Version Code: {version_code}")
     all_forecasts = []
     all_metrics = []
     
@@ -267,7 +281,7 @@ def main():
                     all_forecasts.extend(forecast_data)
                     try:
                         supabase.table('predictions').upsert(forecast_data).execute()
-                        print(f"Upserted 28 days of predictions for [{region.upper()}] {crop.capitalize()}.")
+                        print(f"Upserted 28 days of predictions for [{region.upper()}] {crop.capitalize()} (v{version_code}).")
                     except Exception as err:
                         print(f"Supabase upsert note: {err}")
                     
@@ -279,6 +293,7 @@ def main():
                         "commodity": crop,
                         "region": region,
                         "training_date": today,
+                        "version": version_code,
                         "model_type": model_type,
                         "mse": float(mse),
                         "rmse": float(rmse),
@@ -287,7 +302,7 @@ def main():
                     all_metrics.append(metric_data)
                     try:
                         supabase.table('model_metrics').upsert([metric_data]).execute()
-                        print(f"Logged evaluation metrics for {crop} (RMSE: {rmse:.2f})")
+                        print(f"Logged evaluation metrics for {crop} (RMSE: {rmse:.2f}, Version: {version_code})")
                     except Exception as err:
                         print(f"Supabase metrics note: {err}")
                 
