@@ -324,7 +324,7 @@ function Hero() {
             <div className="max-w-[1400px] mx-auto px-6 md:px-10 relative">
                 {/* Meta row */}
                 <div
-                    className="flex items-center justify-between mb-10 font-mono text-[10.5px] tabular tracking-[0.14em] uppercase"
+                    className="flex items-center justify-end mb-10 font-mono text-[10.5px] tabular tracking-[0.14em] uppercase"
                     style={{ color: "var(--ink-2)" }}
                 >
                     <motion.span
