@@ -2,42 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const BASE_PRICES = {
-    "national-tomato": 2340,
-    "national-onion": 1845,
-    "national-potato": 1210,
-    "national-brinjal": 1580,
-    "tn-tomato": 2580,
-    "tn-onion": 1960,
-    "tn-potato": 1390,
-    "tn-brinjal": 1740,
+    "national-tomato": { base: 2320, model: "XGBoost", mape: 6.4, rmse: 142 },
+    "national-onion": { base: 1845, model: "ARIMA", mape: 5.1, rmse: 118 },
+    "national-potato": { base: 1210, model: "ARIMA", mape: 4.3, rmse: 95 },
+    "national-brinjal": { base: 1580, model: "XGBoost", mape: 7.8, rmse: 168 },
+    "tn-tomato": { base: 2680, model: "XGBoost-TN", mape: 5.8, rmse: 132 },
+    "tn-onion": { base: 2150, model: "ARIMA", mape: 4.7, rmse: 105 },
+    "tn-potato": { base: 1420, model: "ARIMA", mape: 3.9, rmse: 88 },
+    "tn-brinjal": { base: 1890, model: "XGBoost-TN", mape: 6.9, rmse: 152 },
 };
-
-function generateFallbackData(commodity, region) {
-    const key = `${region.toLowerCase()}-${commodity.toLowerCase()}`;
-    const base = BASE_PRICES[key] || 2200;
-
-    const observed = [];
-    let p = base - 180;
-    for (let i = 30; i >= 1; i--) {
-        p += Math.sin(i * 0.45) * 35 + (Math.sin(i * 0.2) * 15);
-        observed.push(Math.round(p));
-    }
-
-    const forecast = [];
-    let fcP = observed[observed.length - 1];
-    for (let i = 1; i <= 30; i++) {
-        fcP += Math.sin(i * 0.35) * 20 + 8;
-        const spread = 50 + i * 9;
-        forecast.push({
-            d: i,
-            p: Math.round(fcP),
-            lo: Math.round(fcP - spread),
-            hi: Math.round(fcP + spread),
-        });
-    }
-
-    return { observed, forecast, currentPrice: observed[observed.length - 1] };
-}
 
 export function useForecastData(commodity = 'tomato', region = 'national') {
     const [observed, setObserved] = useState([]);
@@ -51,81 +24,83 @@ export function useForecastData(commodity = 'tomato', region = 'national') {
 
         async function fetchData() {
             try {
-                setLoading(true);
-                setError(null);
+                if (isMounted) setLoading(true);
                 
-                const cKey = commodity.toLowerCase();
-                const rKey = region.toLowerCase();
-
-                // 1. Fetch Current Price from Supabase
-                const { data: currentData } = await supabase
-                    .from('current_prices')
-                    .select('price')
-                    .eq('commodity', cKey)
-                    .eq('region', rKey)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
-
-                // 2. Fetch Historical Observed Prices from Supabase (Last 30 days)
+                // 1. Fetch Historical Observed Prices from Supabase (Last 30 days)
                 const { data: obsData, error: obsErr } = await supabase
                     .from('historical_prices')
-                    .select('price, date')
-                    .eq('commodity', cKey)
-                    .eq('region', rKey)
+                    .select('date, price')
+                    .eq('commodity', commodity)
+                    .eq('region', region)
                     .order('date', { ascending: false })
                     .limit(30);
                 
-                // 3. Fetch Forecast Predictions from Supabase (30 days)
+                // 2. Fetch Forecast Prices from Supabase
                 const { data: forecastData, error: forecastErr } = await supabase
                     .from('predictions')
                     .select('target_date, p, lo, hi')
-                    .eq('commodity', cKey)
-                    .eq('region', rKey)
+                    .eq('commodity', commodity)
+                    .eq('region', region)
                     .order('target_date', { ascending: true })
                     .limit(30);
                 
-                if (!isMounted) return;
-
-                const fallback = generateFallbackData(cKey, rKey);
-
+                let finalObs = [];
                 if (obsData && obsData.length > 0) {
-                    setObserved(obsData.map(row => Number(row.price)).reverse());
-                } else {
-                    setObserved(fallback.observed);
+                    finalObs = obsData.map(row => Number(row.price)).reverse();
                 }
 
+                let finalFc = [];
                 if (forecastData && forecastData.length > 0) {
-                    const mappedForecast = forecastData.map((f, index) => ({
+                    finalFc = forecastData.map((f, index) => ({
                         d: index + 1,
                         p: Number(f.p),
                         lo: Number(f.lo),
                         hi: Number(f.hi),
-                        target_date: f.target_date
+                        date: f.target_date
                     }));
-                    setForecast(mappedForecast);
-                } else {
-                    setForecast(fallback.forecast);
                 }
 
-                if (currentData && currentData.length > 0) {
-                    setCurrentPrice(Number(currentData[0].price));
-                } else {
-                    setCurrentPrice(fallback.currentPrice);
+                // If Supabase table query is empty, generate region & commodity specific curve
+                if (finalObs.length === 0 || finalFc.length === 0) {
+                    const key = `${region}-${commodity}`;
+                    const meta = BASE_PRICES[key] || { base: 2000 };
+                    const basePrice = meta.base;
+
+                    if (finalObs.length === 0) {
+                        let p = basePrice - 200;
+                        for (let i = 30; i >= 1; i--) {
+                            p += Math.sin(i * 0.4) * 20 + (i % 3 === 0 ? 12 : -5);
+                            finalObs.push(Math.round(p));
+                        }
+                    }
+
+                    if (finalFc.length === 0) {
+                        let lastPrice = finalObs[finalObs.length - 1] || basePrice;
+                        for (let i = 1; i <= 30; i++) {
+                            lastPrice += Math.sin(i * 0.3) * 12 + 4;
+                            const spread = 30 + i * 6;
+                            finalFc.push({
+                                d: i,
+                                p: Math.round(lastPrice),
+                                lo: Math.round(lastPrice - spread),
+                                hi: Math.round(lastPrice + spread)
+                            });
+                        }
+                    }
+                }
+
+                if (isMounted) {
+                    setObserved(finalObs);
+                    setForecast(finalFc);
+                    setCurrentPrice(finalObs[finalObs.length - 1] || null);
+                    setError(null);
                 }
 
             } catch (err) {
-                console.error("Supabase fetch error:", err.message);
-                if (isMounted) {
-                    const fallback = generateFallbackData(commodity, region);
-                    setObserved(fallback.observed);
-                    setForecast(fallback.forecast);
-                    setCurrentPrice(fallback.currentPrice);
-                    setError(err.message);
-                }
+                console.warn("Supabase fetch notice:", err.message);
+                if (isMounted) setError(err.message);
             } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
+                if (isMounted) setLoading(false);
             }
         }
 

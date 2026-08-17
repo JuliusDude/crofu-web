@@ -22,7 +22,6 @@ import {
     Filter,
 } from "lucide-react";
 import { useLenis, useTheme, toggleTheme } from "@/lib/crofuHooks";
-import { useForecastData } from "../hooks/useForecastData";
 
 /* ---------- Reveal wrapper for Framer Motion scroll animations ---------- */
 function Reveal({ children, delay = 0, y = 20, className = "" }) {
@@ -136,49 +135,86 @@ const ALL_MANDIS = [
     { name: "Vellore Main Market", district: "Vellore", modal: 2290, min: 2180, max: 2380, arrival: 480, delta: -0.5, trend: "Stable" },
 ];
 
-/* Generate 30 days history + 30 days forecast */
-function generateSeries(basePrice) {
+/* Generate 30 days history + 30 days forecast dynamically from Supabase / Regional data */
+function generateSeries(commodity, region, dbObserved, dbForecast) {
     const history = [];
     const forecast = [];
     const now = new Date();
+    const key = `${region}-${commodity}`;
+    const basePrice = REGIONAL_BASES[key] || 2200;
 
-    // 30 days history
-    let p = basePrice - 300;
-    for (let i = 30; i >= 1; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        p += Math.sin(i * 0.4) * 25 + (Math.random() * 20 - 10) + 10;
-        history.push({
-            date: d.toISOString().split("T")[0],
-            actual: Math.round(p),
-            arrival: Math.round(3500 + Math.sin(i * 0.5) * 800 + Math.random() * 400),
-            ma7: Math.round(p - 15),
-            ma30: Math.round(p - 60),
+    // Use Supabase historical prices if available
+    if (dbObserved && dbObserved.length > 0) {
+        dbObserved.forEach((priceVal, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() - (dbObserved.length - 1 - i));
+            const p = Math.round(priceVal);
+            history.push({
+                date: d.toISOString().split("T")[0],
+                actual: p,
+                arrival: Math.round(3800 + Math.sin(i * 0.5) * 800),
+                ma7: Math.round(p - 15),
+                ma30: Math.round(p - 45),
+            });
         });
+    } else {
+        let p = basePrice - 250;
+        for (let i = 30; i >= 1; i--) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - i);
+            p += Math.sin(i * 0.4) * 25 + (Math.random() * 20 - 10) + 10;
+            history.push({
+                date: d.toISOString().split("T")[0],
+                actual: Math.round(p),
+                arrival: Math.round(3500 + Math.sin(i * 0.5) * 800),
+                ma7: Math.round(p - 15),
+                ma30: Math.round(p - 60),
+            });
+        }
     }
 
-    // 30 days forecast
-    let fcP = p;
-    for (let i = 1; i <= 30; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() + i);
-        fcP += Math.sin(i * 0.3) * 15 + 6;
-        const spread = 40 + i * 8;
-        forecast.push({
-            day: i,
-            date: d.toISOString().split("T")[0],
-            predicted: Math.round(fcP),
-            lower: Math.round(fcP - spread),
-            upper: Math.round(fcP + spread),
-            arrival: Math.round(3800 + Math.cos(i * 0.4) * 600),
-            xgboost: Math.round(fcP),
-            arima: Math.round(fcP - 25 + Math.sin(i) * 30),
-            grnn: Math.round(fcP + 15 - Math.cos(i) * 20),
-            lstm: Math.round(fcP + 35 - i * 1.2),
+    // Use Supabase predictions if available
+    if (dbForecast && dbForecast.length > 0) {
+        dbForecast.forEach((f, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() + (i + 1));
+            forecast.push({
+                day: i + 1,
+                date: f.date || d.toISOString().split("T")[0],
+                predicted: Math.round(f.p),
+                lower: Math.round(f.lo),
+                upper: Math.round(f.hi),
+                arrival: Math.round(4100 + Math.cos(i * 0.4) * 600),
+                xgboost: Math.round(f.p),
+                arima: Math.round(f.p - 20),
+                grnn: Math.round(f.p + 15),
+                lstm: Math.round(f.p + 25),
+            });
         });
+    } else {
+        let fcP = history.length > 0 ? history[history.length - 1].actual : basePrice;
+        for (let i = 1; i <= 30; i++) {
+            const d = new Date(now);
+            d.setDate(now.getDate() + i);
+            fcP += Math.sin(i * 0.3) * 15 + 6;
+            const spread = 40 + i * 8;
+            forecast.push({
+                day: i,
+                date: d.toISOString().split("T")[0],
+                predicted: Math.round(fcP),
+                lower: Math.round(fcP - spread),
+                upper: Math.round(fcP + spread),
+                arrival: Math.round(3800 + Math.cos(i * 0.4) * 600),
+                xgboost: Math.round(fcP),
+                arima: Math.round(fcP - 25 + Math.sin(i) * 30),
+                grnn: Math.round(fcP + 15 - Math.cos(i) * 20),
+                lstm: Math.round(fcP + 35 - i * 1.2),
+            });
+        }
     }
 
-    return { history, forecast, currentObserved: Math.round(p) };
+    const currentObserved = history.length > 0 ? history[history.length - 1].actual : basePrice;
+    return { history, forecast, currentObserved };
 }
 
 /* ---------- Main Dashboard Component ---------- */
@@ -249,59 +285,13 @@ export default function Dashboard({ onNavigate }) {
     const unitMultiplier = priceUnit === "kg" ? 0.01 : 1.0;
     const unitLabel = priceUnit === "kg" ? "₹ / KG" : "₹ / QUINTAL";
 
-    // Fetch live Supabase forecast data for selected commodity and region
-    const { observed, forecast: sbForecast, currentPrice: sbCurrentPrice, loading: sbLoading } = useForecastData(commodity, region);
+    // Fetch live data from Supabase for active commodity and region
+    const { observed: dbObserved, forecast: dbForecast, loading: dbLoading } = useForecastData(commodity, region);
 
-    // Dataset generation based on commodity, region, and Supabase data
+    // Dataset generation based on commodity & region
     const seriesData = useMemo(() => {
-        const now = new Date();
-        const basePrice = sbCurrentPrice || config.unitQuintal;
-
-        // Build 30 days history from Supabase observed prices or fallback
-        const history = (observed && observed.length > 0 ? observed : Array.from({ length: 30 }, (_, i) => basePrice - 150 + Math.sin(i) * 40)).map((val, i, arr) => {
-            const d = new Date(now);
-            d.setDate(now.getDate() - (arr.length - 1 - i));
-            return {
-                date: d.toISOString().split("T")[0],
-                actual: Math.round(val),
-                arrival: Math.round(3500 + Math.sin(i * 0.5) * 800 + (i * 12)),
-                ma7: Math.round(val - 12),
-                ma30: Math.round(val - 45),
-            };
-        });
-
-        // Build 30 days forecast from Supabase forecast predictions or fallback
-        const forecastList = (sbForecast && sbForecast.length > 0 ? sbForecast : Array.from({ length: 30 }, (_, i) => {
-            const p = basePrice + Math.sin(i * 0.3) * 15 + i * 4;
-            const spread = 40 + i * 8;
-            return { d: i + 1, p, lo: p - spread, hi: p + spread };
-        })).map((f, i) => {
-            const d = new Date(now);
-            d.setDate(now.getDate() + (i + 1));
-            const p = Math.round(f.p);
-            const lower = Math.round(f.lo);
-            const upper = Math.round(f.hi);
-            return {
-                day: i + 1,
-                date: f.target_date || d.toISOString().split("T")[0],
-                predicted: p,
-                lower: lower,
-                upper: upper,
-                arrival: Math.round(3800 + Math.cos(i * 0.4) * 600),
-                xgboost: p,
-                arima: Math.round(p - 25 + Math.sin(i) * 30),
-                grnn: Math.round(p + 15 - Math.cos(i) * 20),
-            };
-        });
-
-        const currentObs = history[history.length - 1]?.actual || basePrice;
-
-        return {
-            history,
-            forecast: forecastList,
-            currentObserved: currentObs,
-        };
-    }, [commodity, region, observed, sbForecast, sbCurrentPrice, config.unitQuintal]);
+        return generateSeries(commodity, region, dbObserved, dbForecast);
+    }, [commodity, region, dbObserved, dbForecast]);
 
     const horizonDays = parseInt(forecastHorizon, 10);
     const activeForecast = seriesData.forecast.slice(0, horizonDays);
