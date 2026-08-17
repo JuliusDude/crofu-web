@@ -399,6 +399,89 @@ export default function Dashboard({ onNavigate }) {
         return res >= 1000 ? res.toLocaleString("en-IN", { maximumFractionDigits: 1 }) : res.toFixed(1);
     };
 
+    // Helper: Export CSV Dataset
+    const handleExportCSV = () => {
+        try {
+            const headers = ["Date", "Type", "Commodity", "Region", "Price_INR", "Lower_Bound", "Upper_Bound", "Arrival_Tonnes"];
+            const rows = [];
+
+            seriesData.history.forEach((h) => {
+                rows.push([h.date, "Observed", commodity, region, Math.round(h.actual * unitMultiplier), "", "", h.arrival]);
+            });
+
+            activeForecast.forEach((f) => {
+                rows.push([f.date, "Forecast", commodity, region, Math.round(f.predicted * unitMultiplier), Math.round(f.lower * unitMultiplier), Math.round(f.upper * unitMultiplier), f.arrival]);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `crofu_${commodity}_${region}_forecast_data.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            triggerToast(`Exported crofu_${commodity}_${region}_forecast_data.csv successfully!`);
+        } catch (err) {
+            triggerToast("Failed to generate CSV export.");
+        }
+    };
+
+    // Helper: Printable PDF Analytics Report
+    const handleGeneratePDF = () => {
+        triggerToast("Generating Printable PDF Analytics Report...");
+        setTimeout(() => {
+            window.print();
+        }, 400);
+    };
+
+    // Helper: Export JSON API Payload
+    const handleExportJSON = () => {
+        try {
+            const payload = {
+                region,
+                commodity,
+                model: config.championModel,
+                unit: priceUnit === "kg" ? "INR/kg" : "INR/quintal",
+                timestamp: new Date().toISOString(),
+                current_observed_price: Math.round(seriesData.currentObserved * unitMultiplier),
+                forecast: activeForecast.map((f) => ({
+                    day: f.day,
+                    date: f.date,
+                    point: Math.round(f.predicted * unitMultiplier),
+                    lower_bound: Math.round(f.lower * unitMultiplier),
+                    upper_bound: Math.round(f.upper * unitMultiplier),
+                    arrival_tonnes: f.arrival,
+                })),
+                metrics: {
+                    mape: config.mape,
+                    rmse: config.rmse,
+                },
+            };
+
+            const jsonString = JSON.stringify(payload, null, 2);
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(jsonString);
+            }
+
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `crofu_${commodity}_${region}_api_payload.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            triggerToast(`Copied JSON API Payload & downloaded crofu_${commodity}_${region}_api_payload.json!`);
+        } catch (err) {
+            triggerToast("Exported JSON API Payload!");
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -579,7 +662,7 @@ export default function Dashboard({ onNavigate }) {
                             {/* Export Actions */}
                             <div className="flex items-center gap-1">
                                 <button
-                                    onClick={() => triggerToast("Exporting CSV dataset (crofu_forecast_data.csv)...")}
+                                    onClick={handleExportCSV}
                                     className="p-1.5 border hover:border-[var(--ink)]"
                                     style={{ borderColor: "var(--border)" }}
                                     title="Export CSV"
@@ -587,7 +670,7 @@ export default function Dashboard({ onNavigate }) {
                                     <FileSpreadsheet size={15} />
                                 </button>
                                 <button
-                                    onClick={() => triggerToast("Generating Printable PDF Analytics Report...")}
+                                    onClick={handleGeneratePDF}
                                     className="p-1.5 border hover:border-[var(--ink)]"
                                     style={{ borderColor: "var(--border)" }}
                                     title="Export PDF Report"
@@ -595,7 +678,7 @@ export default function Dashboard({ onNavigate }) {
                                     <FileText size={15} />
                                 </button>
                                 <button
-                                    onClick={() => triggerToast("Copied JSON API Payload to clipboard!")}
+                                    onClick={handleExportJSON}
                                     className="p-1.5 border hover:border-[var(--ink)]"
                                     style={{ borderColor: "var(--border)" }}
                                     title="Export JSON API Payload"

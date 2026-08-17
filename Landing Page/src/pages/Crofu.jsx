@@ -1038,6 +1038,16 @@ function Accuracy() {
 
 /* ---------- DevAPI ---------- */
 function DevAPI() {
+    const [copiedEndpoint, setCopiedEndpoint] = useState(null);
+
+    const handleCopyCurl = (curlCommand, id) => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(curlCommand);
+        }
+        setCopiedEndpoint(id);
+        setTimeout(() => setCopiedEndpoint(null), 2500);
+    };
+
     return (
         <section
             id="api"
@@ -1084,13 +1094,20 @@ function DevAPI() {
                     <Reveal>
                         <div>
                             <div
-                                className="font-mono text-[10.5px] tabular tracking-[0.14em] uppercase mb-3"
+                                className="font-mono text-[10.5px] tabular tracking-[0.14em] uppercase mb-3 flex items-center justify-between"
                                 style={{ color: "var(--ink-2)" }}
                             >
-                                Request
+                                <span>Request</span>
+                                <button
+                                    onClick={() => handleCopyCurl('curl -X GET "https://api.crofu.in/predict/national/tomato?horizon=14" -H "Accept: application/json"', 'req')}
+                                    className="text-[10px] px-2 py-0.5 border uppercase font-mono tracking-wider hover:border-[var(--ink)] transition-colors"
+                                    style={{ borderColor: "var(--border)", color: copiedEndpoint === 'req' ? "var(--positive)" : "var(--ink-2)" }}
+                                >
+                                    {copiedEndpoint === 'req' ? '✓ Copied cURL' : 'Copy cURL'}
+                                </button>
                             </div>
                             <pre
-                                className="code-block"
+                                className="code-block relative group"
                                 data-testid="api-request"
                             >
 {`GET /predict/national/tomato?horizon=14
@@ -1102,10 +1119,17 @@ Accept: application/json`}
                     <Reveal delay={0.1}>
                         <div>
                             <div
-                                className="font-mono text-[10.5px] tabular tracking-[0.14em] uppercase mb-3"
+                                className="font-mono text-[10.5px] tabular tracking-[0.14em] uppercase mb-3 flex items-center justify-between"
                                 style={{ color: "var(--ink-2)" }}
                             >
-                                Response · 200 OK
+                                <span>Response · 200 OK</span>
+                                <button
+                                    onClick={() => handleCopyCurl(`{\n  "region": "national",\n  "vegetable": "tomato",\n  "model": "xgboost",\n  "unit": "INR/quintal"\n}`, 'res')}
+                                    className="text-[10px] px-2 py-0.5 border uppercase font-mono tracking-wider hover:border-[var(--ink)] transition-colors"
+                                    style={{ borderColor: "var(--border)", color: copiedEndpoint === 'res' ? "var(--positive)" : "var(--ink-2)" }}
+                                >
+                                    {copiedEndpoint === 'res' ? '✓ Copied JSON' : 'Copy JSON'}
+                                </button>
                             </div>
                             <pre
                                 className="code-block"
@@ -1131,43 +1155,58 @@ Accept: application/json`}
                 <Reveal delay={0.2}>
                     <div className="mt-10 grid md:grid-cols-3 gap-4 font-mono text-sm tabular">
                         {[
-                            { m: "GET", p: "/health", d: "Liveness" },
+                            { id: "e1", m: "GET", p: "/health", d: "Liveness check endpoint", url: "https://api.crofu.in/health" },
                             {
+                                id: "e2",
                                 m: "GET",
                                 p: "/vegetables",
                                 d: "Supported crop × market pairs",
+                                url: "https://api.crofu.in/vegetables"
                             },
                             {
+                                id: "e3",
                                 m: "GET",
                                 p: "/predict/{region}/{vegetable}",
                                 d: "Point forecast + bounds",
+                                url: "https://api.crofu.in/predict/national/tomato?horizon=14"
                             },
-                        ].map((e, i) => (
+                        ].map((e) => (
                             <div
-                                key={i}
-                                className="p-5 border flex flex-col gap-2"
+                                key={e.id}
+                                className="p-5 border flex flex-col justify-between gap-4 group"
                                 style={{
                                     borderColor: "var(--border)",
                                     background: "var(--surface)",
                                 }}
                             >
-                                <div className="flex items-baseline gap-3">
+                                <div className="space-y-2">
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <div className="flex items-baseline gap-2">
+                                            <span
+                                                className="text-[10.5px] tracking-[0.14em] uppercase font-bold"
+                                                style={{ color: "var(--positive)" }}
+                                            >
+                                                {e.m}
+                                            </span>
+                                            <span style={{ color: "var(--ink)", fontWeight: 500 }}>
+                                                {e.p}
+                                            </span>
+                                        </div>
+                                    </div>
                                     <span
-                                        className="text-[10.5px] tracking-[0.14em] uppercase"
-                                        style={{ color: "var(--positive)" }}
+                                        className="text-[12.5px] font-sans block"
+                                        style={{ color: "var(--ink-2)" }}
                                     >
-                                        {e.m}
-                                    </span>
-                                    <span style={{ color: "var(--ink)" }}>
-                                        {e.p}
+                                        {e.d}
                                     </span>
                                 </div>
-                                <span
-                                    className="text-[13px] font-sans"
-                                    style={{ color: "var(--ink-2)" }}
+                                <button
+                                    onClick={() => handleCopyCurl(`curl -X GET "${e.url}" -H "Accept: application/json"`, e.id)}
+                                    className="w-full text-[10.5px] py-1.5 border uppercase font-mono tracking-wider hover:bg-[var(--bg)] transition-colors text-center"
+                                    style={{ borderColor: "var(--border)", color: copiedEndpoint === e.id ? "var(--positive)" : "var(--ink)" }}
                                 >
-                                    {e.d}
-                                </span>
+                                    {copiedEndpoint === e.id ? "✓ Copied cURL" : "Copy cURL"}
+                                </button>
                             </div>
                         ))}
                     </div>
