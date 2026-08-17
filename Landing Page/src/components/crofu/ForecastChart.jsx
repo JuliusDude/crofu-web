@@ -1,16 +1,10 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import gsap from "gsap";
 import { useForecastData } from "@/hooks/useForecastData";
 
 export default function ForecastChart({ animate = true, commodity = 'tomato', region = 'national' }) {
     const [hover, setHover] = useState(null);
     
-    const obsClipRef = useRef(null);
-    const fcClipRef = useRef(null);
-    const bandRef = useRef(null);
-    const endMarkerRef = useRef(null);
-
     // Fetch data directly from Supabase via our custom hook
     const { observed, forecast, loading, error } = useForecastData(commodity, region);
 
@@ -28,55 +22,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         });
         return arr;
     }, [observed, forecast]);
-
-    const totalPoints = observed.length + forecast.length;
-    const stepX = (width - padL - padR) / Math.max(1, totalPoints - 1);
-    const lastObsIdx = Math.max(0, observed.length - 1);
-    const transitionX = padL + lastObsIdx * stepX;
-
-    useEffect(() => {
-        if (loading || !obsClipRef.current) return;
-
-        const ctx = gsap.context(() => {
-            // 1. Reveal Historical Observed Path (GSAP rect width expansion)
-            if (obsClipRef.current) {
-                gsap.fromTo(
-                    obsClipRef.current,
-                    { width: 0 },
-                    { width: width - padL - padR, duration: 1.6, ease: "power2.inOut", delay: 0.1 }
-                );
-            }
-
-            // 2. Reveal Forecast Path & Confidence Band (GSAP rect width expansion)
-            if (fcClipRef.current) {
-                gsap.fromTo(
-                    fcClipRef.current,
-                    { width: 0 },
-                    { width: width - transitionX - padR, duration: 1.2, ease: "power2.out", delay: 1.3 }
-                );
-            }
-
-            // 3. Confidence Band opacity reveal
-            if (bandRef.current) {
-                gsap.fromTo(
-                    bandRef.current,
-                    { opacity: 0 },
-                    { opacity: 1, duration: 1.0, ease: "power1.inOut", delay: 1.2 }
-                );
-            }
-
-            // 4. End Marker Pop-in (GSAP spring/back easing)
-            if (endMarkerRef.current) {
-                gsap.fromTo(
-                    endMarkerRef.current,
-                    { opacity: 0, scale: 0, transformOrigin: "center center" },
-                    { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(2.2)", delay: 2.2 }
-                );
-            }
-        });
-
-        return () => ctx.revert();
-    }, [observed, forecast, loading, animate, transitionX, width, padL, padR]);
 
     if (loading) {
         return (
@@ -140,6 +85,9 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
     const yMin = Math.floor(Math.min(...allValues) / 100) * 100 - 100;
     const yMax = Math.ceil(Math.max(...allValues) / 100) * 100 + 100;
 
+    const totalPoints = observed.length + forecast.length;
+    const stepX = (width - padL - padR) / (totalPoints - 1);
+
     const xAt = (i) => padL + i * stepX;
     const yAt = (v) =>
         padT + ((yMax - v) / (yMax - yMin)) * (height - padT - padB);
@@ -148,6 +96,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         .map((v, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(v)}`)
         .join(" ");
 
+    const lastObsIdx = observed.length - 1;
     const forecastPath = [
         `M ${xAt(lastObsIdx)} ${yAt(observed[lastObsIdx])}`,
         ...forecast.map((f, i) => `L ${xAt(lastObsIdx + 1 + i)} ${yAt(f.p)}`),
@@ -199,6 +148,8 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         }
     };
 
+    const transitionX = xAt(lastObsIdx);
+
     return (
         <div
             className="relative w-full"
@@ -233,21 +184,23 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                         />
                     </linearGradient>
                     <clipPath id="revealClip">
-                        <rect
-                            ref={obsClipRef}
+                        <motion.rect
                             x={padL}
                             y={0}
                             height={height}
-                            width={width - padL - padR}
+                            initial={{ width: animate ? 0 : width - padL - padR }}
+                            animate={{ width: width - padL - padR }}
+                            transition={{ duration: 2.2, ease: [0.7, 0, 0.15, 1], delay: 0.35 }}
                         />
                     </clipPath>
                     <clipPath id="bandClip">
-                        <rect
-                            ref={fcClipRef}
+                        <motion.rect
                             x={transitionX}
                             y={0}
                             height={height}
-                            width={width - transitionX - padR}
+                            initial={{ width: animate ? 0 : width - transitionX - padR }}
+                            animate={{ width: width - transitionX - padR }}
+                            transition={{ duration: 1.6, ease: [0.7, 0, 0.15, 1], delay: 1.4 }}
                         />
                     </clipPath>
                 </defs>
@@ -312,7 +265,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 </text>
 
                 {/* Confidence band */}
-                <g ref={bandRef} clipPath="url(#bandClip)">
+                <g clipPath="url(#bandClip)">
                     <polygon
                         points={bandPoints}
                         fill="url(#bandGrad)"
@@ -335,7 +288,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 {/* Observed line */}
                 <g clipPath="url(#revealClip)">
                     <path
-                        ref={obsPathRef}
                         d={observedPath}
                         fill="none"
                         stroke="var(--brand)"
@@ -349,7 +301,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 {forecast.length > 0 && (
                     <g clipPath="url(#bandClip)">
                         <path
-                            ref={fcPathRef}
                             d={forecastPath}
                             fill="none"
                             stroke="var(--gold)"
@@ -363,7 +314,11 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
 
                 {/* End marker on forecast peak */}
                 {forecast.length > 0 && (
-                    <g ref={endMarkerRef}>
+                    <motion.g
+                        initial={{ opacity: animate ? 0 : 1 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.6, delay: 2.6 }}
+                    >
                         <circle
                             cx={xAt(totalPoints - 1)}
                             cy={yAt(forecast[forecast.length - 1].p)}
@@ -383,7 +338,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                         >
                             ₹{forecast[forecast.length - 1].p.toLocaleString("en-IN")}
                         </text>
-                    </g>
+                    </motion.g>
                 )}
 
                 {/* Today marker */}
