@@ -11,9 +11,19 @@ const SplashScreen = forwardRef(({ showText = true, onPrepareUnderneath, onCompl
     const [phraseIndex, setPhraseIndex] = useState(0);
     const [isExpanding, setIsExpanding] = useState(false);
 
+    const onPrepareRef = useRef(onPrepareUnderneath);
+    const onCompleteRef = useRef(onComplete);
+
     useEffect(() => {
+        onPrepareRef.current = onPrepareUnderneath;
+        onCompleteRef.current = onComplete;
+    }, [onPrepareUnderneath, onComplete]);
+
+    useEffect(() => {
+        // Mount target page underneath immediately
+        onPrepareRef.current && onPrepareRef.current();
+
         if (showText) {
-            // Unhurried phrase rotation for Dashboard transition
             const interval = setInterval(() => {
                 setPhraseIndex((prev) => {
                     if (prev < PHRASES.length - 1) {
@@ -22,45 +32,36 @@ const SplashScreen = forwardRef(({ showText = true, onPrepareUnderneath, onCompl
                     clearInterval(interval);
                     return prev;
                 });
-            }, 1400);
+            }, 600);
 
-            // Mid-splash callback (1.5s): mount target page silently under 100% opaque cover
-            const prepareTimer = setTimeout(() => {
-                onPrepareUnderneath && onPrepareUnderneath();
-            }, 1500);
-
-            // At 3.4s, initiate the smooth Anthropic zoom transition into Dashboard
             const expandTimer = setTimeout(() => {
                 setIsExpanding(true);
-            }, 3400);
+            }, 1100);
 
-            // Complete transition at 4.3s
             const completeTimer = setTimeout(() => {
-                onComplete && onComplete();
-            }, 4300);
+                onCompleteRef.current && onCompleteRef.current();
+            }, 1700);
 
             return () => {
                 clearInterval(interval);
-                clearTimeout(prepareTimer);
                 clearTimeout(expandTimer);
                 clearTimeout(completeTimer);
             };
         } else {
-            // Minimal textless splash for initial Landing Page load
             const expandTimer = setTimeout(() => {
                 setIsExpanding(true);
-            }, 1200);
+            }, 600);
 
             const completeTimer = setTimeout(() => {
-                onComplete && onComplete();
-            }, 2000);
+                onCompleteRef.current && onCompleteRef.current();
+            }, 1200);
 
             return () => {
                 clearTimeout(expandTimer);
                 clearTimeout(completeTimer);
             };
         }
-    }, [showText, onPrepareUnderneath, onComplete]);
+    }, [showText]);
 
     return (
         <motion.div

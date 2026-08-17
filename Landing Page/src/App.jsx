@@ -79,6 +79,7 @@ function App() {
     if (targetPage === "dashboard") {
       window.history.pushState({}, "", "/#dashboard");
       window.location.hash = "#dashboard";
+      setRouteInfo({ page: "dashboard", path: "/dashboard" });
       setIsSplashing(true);
     } else if (targetPage === "landing") {
       window.history.pushState({}, "", "/");
