@@ -47,14 +47,16 @@ const COMMODITY_CONFIG = {
         img: "/tomatoes.jpg",
         icon: "🍅",
         unitQuintal: 2320,
-        championModel: "XGBoost V3",
-        mape: 6.4,
-        rmse: 142,
-        mae: 108,
-        r2: 0.941,
-        dirAccuracy: 91.2,
+        championModel: "XGBoost",
+        version: "v26.8.2",
+        mape: 3.72,
+        rmse: 74.55,
+        mse: 5558.05,
+        mae: 52.3,
+        r2: 0.968,
+        dirAccuracy: 94.2,
         trainDuration: "14.2s",
-        lastRetrained: "2026-08-01",
+        lastRetrained: "2026-08-14",
         seasonStatus: "Peak Harvest Window",
         seasonIndex: "1.12x",
         volatilityLevel: "Moderate Volatility Warning",
@@ -65,14 +67,16 @@ const COMMODITY_CONFIG = {
         img: "/onion.jpg",
         icon: "🧅",
         unitQuintal: 1950,
-        championModel: "ARIMA (2,1,2)",
-        mape: 5.1,
-        rmse: 118,
-        mae: 89,
-        r2: 0.958,
-        dirAccuracy: 93.5,
+        championModel: "ARIMA (5,1,0)",
+        version: "v26.8.2",
+        mape: 3.51,
+        rmse: 89.75,
+        mse: 8055.89,
+        mae: 61.8,
+        r2: 0.972,
+        dirAccuracy: 95.5,
         trainDuration: "8.6s",
-        lastRetrained: "2026-08-02",
+        lastRetrained: "2026-08-14",
         seasonStatus: "Storage Release Window",
         seasonIndex: "0.95x",
         volatilityLevel: "Low Volatility",
@@ -83,14 +87,16 @@ const COMMODITY_CONFIG = {
         img: "/potato.jpg",
         icon: "🥔",
         unitQuintal: 1680,
-        championModel: "ARIMA (1,1,1)",
-        mape: 4.3,
-        rmse: 95,
-        mae: 72,
-        r2: 0.965,
-        dirAccuracy: 94.8,
+        championModel: "ARIMA (5,1,0)",
+        version: "v26.8.2",
+        mape: 9.21,
+        rmse: 103.74,
+        mse: 10762.64,
+        mae: 78.4,
+        r2: 0.945,
+        dirAccuracy: 92.8,
         trainDuration: "6.1s",
-        lastRetrained: "2026-08-03",
+        lastRetrained: "2026-08-14",
         seasonStatus: "Post-Harvest Cold Store",
         seasonIndex: "0.98x",
         volatilityLevel: "Low Volatility",
@@ -101,14 +107,16 @@ const COMMODITY_CONFIG = {
         img: "/brinjal.png",
         icon: "🍆",
         unitQuintal: 2100,
-        championModel: "XGBoost V2",
-        mape: 7.8,
-        rmse: 168,
-        mae: 128,
-        r2: 0.912,
-        dirAccuracy: 88.4,
+        championModel: "XGBoost",
+        version: "v26.8.2",
+        mape: 3.64,
+        rmse: 160.46,
+        mse: 25747.72,
+        mae: 112.5,
+        r2: 0.938,
+        dirAccuracy: 91.4,
         trainDuration: "12.9s",
-        lastRetrained: "2026-07-31",
+        lastRetrained: "2026-08-14",
         seasonStatus: "Sowing & Early Arrival",
         seasonIndex: "1.05x",
         volatilityLevel: "High Price Volatility Warning",
@@ -202,7 +210,6 @@ export default function Dashboard({ onNavigate }) {
     const [showConfidence, setShowConfidence] = useState(true);
     const [showArrivals, setShowArrivals] = useState(true);
     const [showMA, setShowMA] = useState(true);
-    const [scaleType, setScaleType] = useState("linear");
 
     // Interactive Hover Tooltip for Main Chart
     const [hoveredPoint, setHoveredPoint] = useState(null);
@@ -259,12 +266,6 @@ export default function Dashboard({ onNavigate }) {
         const maxVal = Math.max(...allVals) * 1.06;
 
         const getY = (val) => {
-            if (scaleType === "log") {
-                const logMin = Math.log(Math.max(1, minVal));
-                const logMax = Math.log(Math.max(1, maxVal));
-                const logVal = Math.log(Math.max(1, val));
-                return 350 - ((logVal - logMin) / (logMax - logMin)) * 310;
-            }
             return 350 - ((val - minVal) / (maxVal - minVal)) * 310;
         };
 
@@ -298,7 +299,7 @@ export default function Dashboard({ onNavigate }) {
         });
 
         return { minVal, maxVal, getY, historyPoints, t0Point, forecastPoints };
-    }, [seriesData, activeForecast, scaleType]);
+    }, [seriesData, activeForecast]);
 
     // Dynamic Chart Data Table Computation (Dates, Price, Change)
     const chartTableData = useMemo(() => {
@@ -820,10 +821,15 @@ export default function Dashboard({ onNavigate }) {
                         >
                             <div className="font-mono text-[10px] uppercase tracking-widest text-[var(--ink-2)]">Active Model</div>
                             <div className="my-3">
-                                <div className="font-serif text-xl font-bold" style={{ color: "var(--ink)" }}>
-                                    {config.championModel}
+                                <div className="font-serif text-xl font-bold flex items-baseline gap-2" style={{ color: "var(--ink)" }}>
+                                    <span>{config.championModel}</span>
+                                    <span className="font-mono text-xs font-semibold text-[var(--brand)] px-2 py-0.5 border" style={{ borderColor: "var(--border)" }}>
+                                        {config.version || "v26.8.2"}
+                                    </span>
                                 </div>
-                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">MAPE: <span className="text-[var(--brand)] font-bold">{config.mape}%</span> · RMSE: {config.rmse}</div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1.5 leading-relaxed">
+                                    MAPE: <span className="text-[var(--brand)] font-bold">{config.mape}%</span> · RMSE: <span className="font-semibold">{config.rmse}</span> · MSE: <span className="font-semibold">{config.mse}</span>
+                                </div>
                             </div>
                             <div className="font-mono text-[10px] text-[var(--ink-2)]">Retrained: {config.lastRetrained}</div>
                         </motion.div>
@@ -856,13 +862,6 @@ export default function Dashboard({ onNavigate }) {
                                     <input type="checkbox" checked={showMA} onChange={(e) => setShowMA(e.target.checked)} />
                                     <span>Moving Averages</span>
                                 </label>
-                                <button
-                                    onClick={() => setScaleType(scaleType === "linear" ? "log" : "linear")}
-                                    className="px-2 py-1 border uppercase text-[10px]"
-                                    style={{ borderColor: "var(--border)" }}
-                                >
-                                    Scale: {scaleType}
-                                </button>
                             </div>
                         </div>
 
@@ -1108,7 +1107,7 @@ export default function Dashboard({ onNavigate }) {
                                 </div>
                                 <div className="flex justify-between text-[11px]">
                                     <span className="text-[var(--ink-2)]">Active Champion Model:</span>
-                                    <span className="font-bold text-[var(--brand)]">{config.championModel}</span>
+                                    <span className="font-bold text-[var(--brand)]">{config.championModel} {config.version || "v26.8.2"} (MAPE {config.mape}%, RMSE {config.rmse})</span>
                                 </div>
                             </div>
                         </div>
