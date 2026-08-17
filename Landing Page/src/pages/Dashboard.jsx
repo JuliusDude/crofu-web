@@ -136,6 +136,17 @@ const ALL_MANDIS = [
     { name: "Vellore Main Market", district: "Vellore", modal: 2290, min: 2180, max: 2380, arrival: 480, delta: -0.5, trend: "Stable" },
 ];
 
+const REGIONAL_BASES = {
+    "national-tomato": 2320,
+    "national-onion": 1845,
+    "national-potato": 1210,
+    "national-brinjal": 1580,
+    "tn-tomato": 2680,
+    "tn-onion": 2150,
+    "tn-potato": 1420,
+    "tn-brinjal": 1890,
+};
+
 /* Generate 30 days history + 30 days forecast dynamically from Supabase / Regional data */
 function generateSeries(commodity, region, dbObserved, dbForecast) {
     const history = [];
