@@ -457,7 +457,7 @@ function Hero() {
                     </div>
 
                     <motion.div
-                        className="md:col-span-7"
+                        className="md:col-span-7 pt-4 md:pt-8"
                         style={{ y: chartY }}
                     >
                         <div
