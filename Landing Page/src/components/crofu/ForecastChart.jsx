@@ -1,10 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import gsap from "gsap";
 import { useForecastData } from "@/hooks/useForecastData";
 
 export default function ForecastChart({ animate = true, commodity = 'tomato', region = 'national' }) {
     const [hover, setHover] = useState(null);
     
+    const obsPathRef = useRef(null);
+    const fcPathRef = useRef(null);
+    const bandRef = useRef(null);
+    const endMarkerRef = useRef(null);
+
     // Fetch data directly from Supabase via our custom hook
     const { observed, forecast, loading, error } = useForecastData(commodity, region);
 
@@ -22,6 +28,50 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         });
         return arr;
     }, [observed, forecast]);
+
+    useEffect(() => {
+        if (loading || !obsPathRef.current) return;
+
+        const ctx = gsap.context(() => {
+            // Observed Path Draw Animation
+            const obsLen = obsPathRef.current.getTotalLength ? obsPathRef.current.getTotalLength() : 1000;
+            gsap.fromTo(
+                obsPathRef.current,
+                { strokeDasharray: obsLen, strokeDashoffset: obsLen },
+                { strokeDashoffset: 0, duration: 1.8, ease: "power2.out", delay: 0.2 }
+            );
+
+            // Forecast Path Draw Animation
+            if (fcPathRef.current) {
+                const fcLen = fcPathRef.current.getTotalLength ? fcPathRef.current.getTotalLength() : 500;
+                gsap.fromTo(
+                    fcPathRef.current,
+                    { strokeDasharray: `${fcLen} ${fcLen}`, strokeDashoffset: fcLen },
+                    { strokeDashoffset: 0, duration: 1.4, ease: "power2.out", delay: 1.4 }
+                );
+            }
+
+            // Confidence Band Fade & Expand
+            if (bandRef.current) {
+                gsap.fromTo(
+                    bandRef.current,
+                    { opacity: 0 },
+                    { opacity: 1, duration: 1.2, ease: "power2.out", delay: 1.3 }
+                );
+            }
+
+            // End Marker Pop-in with spring/back ease
+            if (endMarkerRef.current) {
+                gsap.fromTo(
+                    endMarkerRef.current,
+                    { opacity: 0, scale: 0, transformOrigin: "center center" },
+                    { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.8)", delay: 2.2 }
+                );
+            }
+        });
+
+        return () => ctx.revert();
+    }, [observed, forecast, loading, animate]);
 
     if (loading) {
         return (
@@ -265,7 +315,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 </text>
 
                 {/* Confidence band */}
-                <g clipPath="url(#bandClip)">
+                <g ref={bandRef} clipPath="url(#bandClip)">
                     <polygon
                         points={bandPoints}
                         fill="url(#bandGrad)"
@@ -288,6 +338,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 {/* Observed line */}
                 <g clipPath="url(#revealClip)">
                     <path
+                        ref={obsPathRef}
                         d={observedPath}
                         fill="none"
                         stroke="var(--brand)"
@@ -301,6 +352,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                 {forecast.length > 0 && (
                     <g clipPath="url(#bandClip)">
                         <path
+                            ref={fcPathRef}
                             d={forecastPath}
                             fill="none"
                             stroke="var(--gold)"
@@ -314,11 +366,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
 
                 {/* End marker on forecast peak */}
                 {forecast.length > 0 && (
-                    <motion.g
-                        initial={{ opacity: animate ? 0 : 1 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.6, delay: 2.6 }}
-                    >
+                    <g ref={endMarkerRef}>
                         <circle
                             cx={xAt(totalPoints - 1)}
                             cy={yAt(forecast[forecast.length - 1].p)}
@@ -338,7 +386,7 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                         >
                             ₹{forecast[forecast.length - 1].p.toLocaleString("en-IN")}
                         </text>
-                    </motion.g>
+                    </g>
                 )}
 
                 {/* Today marker */}
