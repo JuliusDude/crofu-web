@@ -338,7 +338,7 @@ function Hero() {
                 </div>
 
                 {/* Two-column layout: forecast number & headline on left, chart on right */}
-                <div className="grid md:grid-cols-12 gap-8 md:gap-12 items-end">
+                <div className="grid md:grid-cols-12 gap-8 md:gap-12 items-start">
                     <div className="md:col-span-5">
                         <div
                             className="font-mono text-[11px] tabular tracking-[0.16em] uppercase mb-4"
