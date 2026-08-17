@@ -140,9 +140,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
     const yMin = Math.floor(Math.min(...allValues) / 100) * 100 - 100;
     const yMax = Math.ceil(Math.max(...allValues) / 100) * 100 + 100;
 
-    const totalPoints = observed.length + forecast.length;
-    const stepX = (width - padL - padR) / (totalPoints - 1);
-
     const xAt = (i) => padL + i * stepX;
     const yAt = (v) =>
         padT + ((yMax - v) / (yMax - yMin)) * (height - padT - padB);
@@ -151,7 +148,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         .map((v, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(v)}`)
         .join(" ");
 
-    const lastObsIdx = observed.length - 1;
     const forecastPath = [
         `M ${xAt(lastObsIdx)} ${yAt(observed[lastObsIdx])}`,
         ...forecast.map((f, i) => `L ${xAt(lastObsIdx + 1 + i)} ${yAt(f.p)}`),
@@ -202,8 +198,6 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
             });
         }
     };
-
-    const transitionX = xAt(lastObsIdx);
 
     return (
         <div
