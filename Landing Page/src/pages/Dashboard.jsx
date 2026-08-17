@@ -131,7 +131,7 @@ const ALL_MANDIS = [
 function generateSeries(basePrice) {
     const history = [];
     const forecast = [];
-    const now = new Date(2026, 7, 4); // Aug 4, 2026
+    const now = new Date();
 
     // 30 days history
     let p = basePrice - 300;
@@ -275,9 +275,11 @@ export default function Dashboard({ onNavigate }) {
             return { ...h, x, y, yMa, type: "history" };
         });
 
+        const todayStr = new Date().toISOString().split("T")[0];
+
         // Exact t=0 Present Cutoff Point at x=500
         const t0Point = {
-            date: "2026-08-04",
+            date: todayStr,
             actual: seriesData.currentObserved,
             predicted: seriesData.currentObserved,
             arrival: 4850,
@@ -300,6 +302,7 @@ export default function Dashboard({ onNavigate }) {
 
     // Dynamic Chart Data Table Computation (Dates, Price, Change)
     const chartTableData = useMemo(() => {
+        const todayStr = new Date().toISOString().split("T")[0];
         const hist = seriesData.history.map((h) => ({
             date: h.date,
             price: h.actual,
@@ -307,7 +310,7 @@ export default function Dashboard({ onNavigate }) {
         }));
 
         const present = {
-            date: "2026-08-04",
+            date: todayStr,
             price: seriesData.currentObserved,
             type: "Observed",
             isT0: true,
@@ -448,7 +451,7 @@ export default function Dashboard({ onNavigate }) {
                     <div className="flex items-center gap-4 text-xs font-mono">
                         <div className="hidden lg:flex items-center gap-2 text-[var(--ink-2)] border px-3 py-1.5" style={{ borderColor: "var(--border)" }}>
                             <span className="w-2 h-2 rounded-full bg-[var(--positive)] animate-pulse" />
-                            <span>Agmarknet Sync: 2026-08-04 06:00 IST</span>
+                            <span>Agmarknet Sync: {new Date().toISOString().split("T")[0]} 08:00 IST</span>
                             <span className="opacity-40">|</span>
                             <span className="text-[var(--positive)]">API Operational</span>
                         </div>
@@ -650,7 +653,7 @@ export default function Dashboard({ onNavigate }) {
                                 <div className="font-serif text-3xl font-bold tracking-tight" style={{ color: "var(--gold)" }}>
                                     ₹{fmt(seriesData.currentObserved)}
                                 </div>
-                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">{unitLabel} · 2026-08-04</div>
+                                <div className="font-mono text-[11px] text-[var(--ink-2)] mt-1">{unitLabel} · {new Date().toISOString().split("T")[0]}</div>
                             </div>
                             <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--positive)] font-semibold">
                                 <TrendingUp size={14} />
@@ -960,7 +963,7 @@ export default function Dashboard({ onNavigate }) {
                                     {chartMath.historyPoints[0]?.date}
                                 </text>
                                 <text x="470" y="380" fill="var(--gold)" fontWeight="bold" fontSize="10">
-                                    2026-08-04 (t=0)
+                                    {new Date().toISOString().split("T")[0]} (t=0)
                                 </text>
                                 <text x="900" y="380" fill="var(--ink-2)" fontSize="10">
                                     {chartMath.forecastPoints[chartMath.forecastPoints.length - 1]?.date}
@@ -983,7 +986,7 @@ export default function Dashboard({ onNavigate }) {
                             >
                                 <div className="flex items-center justify-between border-b pb-1 font-bold" style={{ borderColor: "var(--border)" }}>
                                     <span style={{ color: hoveredPoint?.type === "forecast" ? "var(--gold)" : "var(--positive)" }}>
-                                        {hoveredPoint ? hoveredPoint.date : "2026-08-04 (t=0)"}
+                                        {hoveredPoint ? hoveredPoint.date : `${new Date().toISOString().split("T")[0]} (t=0)`}
                                     </span>
                                     <span
                                         className="text-[10px] uppercase px-1.5 py-0.5 border font-bold"
