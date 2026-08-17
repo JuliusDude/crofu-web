@@ -24,3 +24,10 @@ Thumbs.db
 
 # Local Tools
 admin_dashboard.py
+
+# Project & Agent Artifacts
+brag-output*/
+context.md
+handoff.md
+*_plan.md
+*.artifact.md
