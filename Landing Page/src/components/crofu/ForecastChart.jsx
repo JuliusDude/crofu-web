@@ -6,8 +6,8 @@ import { useForecastData } from "@/hooks/useForecastData";
 export default function ForecastChart({ animate = true, commodity = 'tomato', region = 'national' }) {
     const [hover, setHover] = useState(null);
     
-    const obsPathRef = useRef(null);
-    const fcPathRef = useRef(null);
+    const obsClipRef = useRef(null);
+    const fcClipRef = useRef(null);
     const bandRef = useRef(null);
     const endMarkerRef = useRef(null);
 
@@ -29,49 +29,54 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
         return arr;
     }, [observed, forecast]);
 
+    const totalPoints = observed.length + forecast.length;
+    const stepX = (width - padL - padR) / Math.max(1, totalPoints - 1);
+    const lastObsIdx = Math.max(0, observed.length - 1);
+    const transitionX = padL + lastObsIdx * stepX;
+
     useEffect(() => {
-        if (loading || !obsPathRef.current) return;
+        if (loading || !obsClipRef.current) return;
 
         const ctx = gsap.context(() => {
-            // Observed Path Draw Animation
-            const obsLen = obsPathRef.current.getTotalLength ? obsPathRef.current.getTotalLength() : 1000;
-            gsap.fromTo(
-                obsPathRef.current,
-                { strokeDasharray: obsLen, strokeDashoffset: obsLen },
-                { strokeDashoffset: 0, duration: 1.8, ease: "power2.out", delay: 0.2 }
-            );
-
-            // Forecast Path Draw Animation
-            if (fcPathRef.current) {
-                const fcLen = fcPathRef.current.getTotalLength ? fcPathRef.current.getTotalLength() : 500;
+            // 1. Reveal Historical Observed Path (GSAP rect width expansion)
+            if (obsClipRef.current) {
                 gsap.fromTo(
-                    fcPathRef.current,
-                    { strokeDasharray: `${fcLen} ${fcLen}`, strokeDashoffset: fcLen },
-                    { strokeDashoffset: 0, duration: 1.4, ease: "power2.out", delay: 1.4 }
+                    obsClipRef.current,
+                    { width: 0 },
+                    { width: width - padL - padR, duration: 1.6, ease: "power2.inOut", delay: 0.1 }
                 );
             }
 
-            // Confidence Band Fade & Expand
+            // 2. Reveal Forecast Path & Confidence Band (GSAP rect width expansion)
+            if (fcClipRef.current) {
+                gsap.fromTo(
+                    fcClipRef.current,
+                    { width: 0 },
+                    { width: width - transitionX - padR, duration: 1.2, ease: "power2.out", delay: 1.3 }
+                );
+            }
+
+            // 3. Confidence Band opacity reveal
             if (bandRef.current) {
                 gsap.fromTo(
                     bandRef.current,
                     { opacity: 0 },
-                    { opacity: 1, duration: 1.2, ease: "power2.out", delay: 1.3 }
+                    { opacity: 1, duration: 1.0, ease: "power1.inOut", delay: 1.2 }
                 );
             }
 
-            // End Marker Pop-in with spring/back ease
+            // 4. End Marker Pop-in (GSAP spring/back easing)
             if (endMarkerRef.current) {
                 gsap.fromTo(
                     endMarkerRef.current,
                     { opacity: 0, scale: 0, transformOrigin: "center center" },
-                    { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.8)", delay: 2.2 }
+                    { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(2.2)", delay: 2.2 }
                 );
             }
         });
 
         return () => ctx.revert();
-    }, [observed, forecast, loading, animate]);
+    }, [observed, forecast, loading, animate, transitionX, width, padL, padR]);
 
     if (loading) {
         return (
@@ -234,23 +239,21 @@ export default function ForecastChart({ animate = true, commodity = 'tomato', re
                         />
                     </linearGradient>
                     <clipPath id="revealClip">
-                        <motion.rect
+                        <rect
+                            ref={obsClipRef}
                             x={padL}
                             y={0}
                             height={height}
-                            initial={{ width: animate ? 0 : width - padL - padR }}
-                            animate={{ width: width - padL - padR }}
-                            transition={{ duration: 2.2, ease: [0.7, 0, 0.15, 1], delay: 0.35 }}
+                            width={width - padL - padR}
                         />
                     </clipPath>
                     <clipPath id="bandClip">
-                        <motion.rect
+                        <rect
+                            ref={fcClipRef}
                             x={transitionX}
                             y={0}
                             height={height}
-                            initial={{ width: animate ? 0 : width - transitionX - padR }}
-                            animate={{ width: width - transitionX - padR }}
-                            transition={{ duration: 1.6, ease: [0.7, 0, 0.15, 1], delay: 1.4 }}
+                            width={width - transitionX - padR}
                         />
                     </clipPath>
                 </defs>
