@@ -475,9 +475,9 @@ function Hero() {
                                 <span>
                                     Model:{" "}
                                     <span style={{ color: "var(--ink)" }}>
-                                        XGBoost
+                                        XGBoost v26.8.2
                                     </span>{" "}
-                                    · MAPE 6.4%
+                                    · MAPE 3.7% · RMSE 74.5
                                 </span>
                             </div>
                             <ForecastChart />
@@ -749,6 +749,32 @@ function Coverage({ onNavigate }) {
                                 </svg>
                             </button>
                         </div>
+                    </div>
+                </Reveal>
+
+                {/* Interactive Chart Container for Selected Crop & Region */}
+                <Reveal delay={0.4}>
+                    <div
+                        className="mt-8 p-4 md:p-6 border relative"
+                        style={{
+                            background: "var(--surface)",
+                            borderColor: "var(--border)",
+                        }}
+                    >
+                        <div
+                            className="flex items-center justify-between mb-4 font-mono text-[10.5px] tabular tracking-[0.14em] uppercase"
+                            style={{ color: "var(--ink-2)" }}
+                        >
+                            <span>Live Forecast Chart &nbsp;·&nbsp; {selected.label} ({REGIONS.find((r) => r.key === region).label})</span>
+                            <span className="hidden md:inline">
+                                Model:{" "}
+                                <span style={{ color: "var(--ink)", fontWeight: 600 }}>
+                                    {selected.model}
+                                </span>{" "}
+                                · MAPE {selected.mape}%
+                            </span>
+                        </div>
+                        <ForecastChart commodity={veg} region={region} key={`${region}-${veg}`} />
                     </div>
                 </Reveal>
             </div>

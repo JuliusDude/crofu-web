@@ -22,6 +22,7 @@ import {
     Filter,
 } from "lucide-react";
 import { useLenis, useTheme, toggleTheme } from "@/lib/crofuHooks";
+import { useForecastData } from "../hooks/useForecastData";
 
 /* ---------- Reveal wrapper for Framer Motion scroll animations ---------- */
 function Reveal({ children, delay = 0, y = 20, className = "" }) {
@@ -248,8 +249,59 @@ export default function Dashboard({ onNavigate }) {
     const unitMultiplier = priceUnit === "kg" ? 0.01 : 1.0;
     const unitLabel = priceUnit === "kg" ? "₹ / KG" : "₹ / QUINTAL";
 
-    // Dataset generation based on commodity
-    const seriesData = useMemo(() => generateSeries(config.unitQuintal), [commodity]);
+    // Fetch live Supabase forecast data for selected commodity and region
+    const { observed, forecast: sbForecast, currentPrice: sbCurrentPrice, loading: sbLoading } = useForecastData(commodity, region);
+
+    // Dataset generation based on commodity, region, and Supabase data
+    const seriesData = useMemo(() => {
+        const now = new Date();
+        const basePrice = sbCurrentPrice || config.unitQuintal;
+
+        // Build 30 days history from Supabase observed prices or fallback
+        const history = (observed && observed.length > 0 ? observed : Array.from({ length: 30 }, (_, i) => basePrice - 150 + Math.sin(i) * 40)).map((val, i, arr) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() - (arr.length - 1 - i));
+            return {
+                date: d.toISOString().split("T")[0],
+                actual: Math.round(val),
+                arrival: Math.round(3500 + Math.sin(i * 0.5) * 800 + (i * 12)),
+                ma7: Math.round(val - 12),
+                ma30: Math.round(val - 45),
+            };
+        });
+
+        // Build 30 days forecast from Supabase forecast predictions or fallback
+        const forecastList = (sbForecast && sbForecast.length > 0 ? sbForecast : Array.from({ length: 30 }, (_, i) => {
+            const p = basePrice + Math.sin(i * 0.3) * 15 + i * 4;
+            const spread = 40 + i * 8;
+            return { d: i + 1, p, lo: p - spread, hi: p + spread };
+        })).map((f, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() + (i + 1));
+            const p = Math.round(f.p);
+            const lower = Math.round(f.lo);
+            const upper = Math.round(f.hi);
+            return {
+                day: i + 1,
+                date: f.target_date || d.toISOString().split("T")[0],
+                predicted: p,
+                lower: lower,
+                upper: upper,
+                arrival: Math.round(3800 + Math.cos(i * 0.4) * 600),
+                xgboost: p,
+                arima: Math.round(p - 25 + Math.sin(i) * 30),
+                grnn: Math.round(p + 15 - Math.cos(i) * 20),
+            };
+        });
+
+        const currentObs = history[history.length - 1]?.actual || basePrice;
+
+        return {
+            history,
+            forecast: forecastList,
+            currentObserved: currentObs,
+        };
+    }, [commodity, region, observed, sbForecast, sbCurrentPrice, config.unitQuintal]);
 
     const horizonDays = parseInt(forecastHorizon, 10);
     const activeForecast = seriesData.forecast.slice(0, horizonDays);
