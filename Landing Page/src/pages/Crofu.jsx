@@ -277,6 +277,16 @@ function Hero() {
     const blob2Y = useTransform(scrollYProgress, [0, 1], [0, 80]);
     const chartY = useTransform(scrollYProgress, [0, 1], [0, -40]);
 
+    const today = new Date();
+    const formattedTime = today.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
+    const formattedMonthYear = today.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    const volumeNum = String(today.getMonth() + 1).padStart(2, "0");
+
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + 14);
+    const formattedTargetDate = targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const formattedTargetShort = targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
     return (
         <section
             ref={ref}
@@ -325,14 +335,14 @@ function Hero() {
                         transition={{ delay: 0.3, duration: 0.8 }}
                     >
                         <span style={{ color: "var(--positive)" }}>●</span>{" "}
-                        Live · Updated 04:12 IST
+                        Live · Updated {formattedTime}
                     </motion.span>
                     <motion.span
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.35, duration: 0.8 }}
                     >
-                        Volume 07 · Aug 2025
+                        Volume {volumeNum} · {formattedMonthYear}
                     </motion.span>
                 </div>
 
@@ -386,7 +396,7 @@ function Hero() {
                                 className="font-mono text-xs tabular tracking-[0.1em] uppercase"
                                 style={{ color: "var(--ink-2)" }}
                             >
-                                per Quintal &nbsp;·&nbsp; expected Aug&nbsp;2, 2025
+                                per Quintal &nbsp;·&nbsp; expected {formattedTargetDate}
                             </div>
                         </div>
 
@@ -412,7 +422,7 @@ function Hero() {
                                 </em>
                             </LineMask>{" "}
                             <LineMask delay={0.55}>
-                                on Aug&nbsp;2 across national mandis —
+                                on {formattedTargetShort} across national mandis —
                             </LineMask>{" "}
                             <LineMask delay={0.65}>
                                 <span style={{ color: "var(--ink-2)" }}>
@@ -1436,7 +1446,7 @@ function Footer() {
                 <span>
                     Data: Agmarknet · Built with FastAPI + Python
                 </span>
-                <span>© 2025</span>
+                <span>© {new Date().getFullYear()}</span>
             </div>
         </footer>
     );
