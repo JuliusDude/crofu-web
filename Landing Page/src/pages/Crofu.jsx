@@ -279,8 +279,6 @@ function Hero() {
 
     const today = new Date();
     const formattedTime = today.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
-    const formattedMonthYear = today.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-    const volumeNum = String(today.getMonth() + 1).padStart(2, "0");
 
     const targetDate = new Date(today);
     targetDate.setDate(targetDate.getDate() + 14);
@@ -336,13 +334,6 @@ function Hero() {
                     >
                         <span style={{ color: "var(--positive)" }}>●</span>{" "}
                         Live · Updated {formattedTime}
-                    </motion.span>
-                    <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.35, duration: 0.8 }}
-                    >
-                        Volume {volumeNum} · {formattedMonthYear}
                     </motion.span>
                 </div>
 
