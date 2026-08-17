@@ -22,6 +22,7 @@ import {
     Filter,
 } from "lucide-react";
 import { useLenis, useTheme, toggleTheme } from "@/lib/crofuHooks";
+import { useForecastData } from "@/hooks/useForecastData";
 
 /* ---------- Reveal wrapper for Framer Motion scroll animations ---------- */
 function Reveal({ children, delay = 0, y = 20, className = "" }) {
