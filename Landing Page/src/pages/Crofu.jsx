@@ -349,9 +349,9 @@ function Hero() {
 
                         <div className="mb-6">
                             <div
-                                className="font-serif tabular leading-[0.9] mb-3"
+                                className="font-sans tabular leading-[0.9] mb-3"
                                 style={{
-                                    fontWeight: 600,
+                                    fontWeight: 700,
                                     fontSize: "clamp(42px, 9vw, 132px)",
                                     color: "var(--gold)",
                                     letterSpacing: "-0.02em",
@@ -374,7 +374,7 @@ function Hero() {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     transition={{ duration: 0.8, delay: 1.6 }}
-                                    className="font-mono"
+                                    className="font-sans font-medium"
                                     style={{
                                         fontSize: "0.42em",
                                         letterSpacing: 0,
@@ -691,7 +691,7 @@ function Coverage({ onNavigate }) {
                                 {REGIONS.find((r) => r.key === region).label}
                             </div>
                             <div
-                                className="font-serif tabular"
+                                className="font-sans font-bold tabular"
                                 style={{
                                     fontWeight: 600,
                                     fontSize: "clamp(40px, 5vw, 64px)",
@@ -1290,7 +1290,7 @@ function GetApp() {
                                     Tomato · National
                                 </div>
                                 <div
-                                    className="font-serif tabular leading-none mb-1"
+                                    className="font-sans font-bold tabular leading-none mb-1"
                                     style={{
                                         fontWeight: 600,
                                         fontSize: 44,
