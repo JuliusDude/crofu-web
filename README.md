@@ -16,7 +16,7 @@
 
 The platform operates across two geographic tiers:
 - **National Level**: All-India aggregated mandi wholesale trading prices.
-- **State Level (Tamil Nadu)**: Region-specific trading prices across major Tamil Nadu mandis.
+- **State Level (Tamil Nadu)**: Region-specific trading prices.
 
 ---
 
